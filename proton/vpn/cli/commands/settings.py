@@ -216,46 +216,45 @@ class ClickFeature(Feature):
 
 REQUIRES_SUBSCRIPTION_PLAN = ". Requires subscription plan"
 
-BOOL_FEATURES = [
-    ClickFeature(
-        command="vpn-accelerator",
-        human_friendly_name="VPN Accelerator",
-        setting_path="features.vpn_accelerator",
-        short_help=f"Toggle VPN Accelerator{REQUIRES_SUBSCRIPTION_PLAN}",
-        click_type=ToggleType()
-    ),
-    ClickFeature(
-        command="moderate-nat",
-        human_friendly_name="Moderate NAT",
-        setting_path="features.moderate_nat",
-        short_help=f"Toggle Moderate NAT{REQUIRES_SUBSCRIPTION_PLAN}",
-        click_type=ToggleType()
-    ),
-    ClickFeature(
-        command="ipv6",
-        human_friendly_name="IPv6",
-        setting_path="ipv6",
-        short_help="Toggle IPv6",
-        available_on_free_tier=True,
-        requires_restart=True,
-        click_type=ToggleType()
-    ),
-    ClickFeature(
-        command="anonymous-crash-reports",
-        human_friendly_name="Anonymous crash reports",
-        setting_path="anonymous_crash_reports",
-        short_help="Toggle anonymous crash reports",
-        available_on_free_tier=True,
-        click_type=ToggleType()
-    ),
-    ClickFeature(
-        command="port-forwarding",
-        human_friendly_name="Port forwarding",
-        setting_path="features.port_forwarding",
-        short_help=f"Toggle Port forwarding{REQUIRES_SUBSCRIPTION_PLAN}",
-        click_type=ToggleType()
-    )
-]
+
+VPN_ACCELERATOR_FEATURE = ClickFeature(
+    command="vpn-accelerator",
+    human_friendly_name="VPN Accelerator",
+    setting_path="features.vpn_accelerator",
+    short_help=f"Toggle VPN Accelerator{REQUIRES_SUBSCRIPTION_PLAN}",
+    click_type=ToggleType()
+)
+MODERATE_NAT_FEATURE = ClickFeature(
+    command="moderate-nat",
+    human_friendly_name="Moderate NAT",
+    setting_path="features.moderate_nat",
+    short_help=f"Toggle Moderate NAT{REQUIRES_SUBSCRIPTION_PLAN}",
+    click_type=ToggleType()
+)
+IPV6_FEATURE = ClickFeature(
+    command="ipv6",
+    human_friendly_name="IPv6",
+    setting_path="ipv6",
+    short_help="Toggle IPv6",
+    available_on_free_tier=True,
+    requires_restart=True,
+    click_type=ToggleType()
+)
+ANON_CRASH_REPORTS_FEATURE = ClickFeature(
+    command="anonymous-crash-reports",
+    human_friendly_name="Anonymous crash reports",
+    setting_path="anonymous_crash_reports",
+    short_help="Toggle anonymous crash reports",
+    available_on_free_tier=True,
+    click_type=ToggleType()
+)
+PORT_FORWARDING_FEATURE = ClickFeature(
+    command="port-forwarding",
+    human_friendly_name="Port forwarding",
+    setting_path="features.port_forwarding",
+    short_help=f"Toggle Port forwarding{REQUIRES_SUBSCRIPTION_PLAN}",
+    click_type=ToggleType()
+)
 CUSTOM_DNS_FEATURE = ClickFeature(
     command="custom-dns",
     human_friendly_name="Custom DNS",
@@ -279,6 +278,14 @@ KILLSWITCH_FEATURE = ClickFeature(
     click_type=KillSwitchType()
 )
 
+BOOL_FEATURES = [
+    VPN_ACCELERATOR_FEATURE,
+    MODERATE_NAT_FEATURE,
+    IPV6_FEATURE,
+    ANON_CRASH_REPORTS_FEATURE,
+    PORT_FORWARDING_FEATURE
+]
+
 
 def _raise_error_auth_required(controller: Controller, action: str) -> None:
     raise click.UsageError(
@@ -296,17 +303,33 @@ def _raise_error_requires_higher_tier(feature_human_friendly_name: str) -> None:
 
 
 def _print_success_message(
-    feature: Feature,
-    mode: str,
+    feature: ClickFeature,
+    value: str,
     is_connection_active: bool = False
-) -> None:
-    msg = f"{feature.human_friendly_name} has been set to {mode}"
+):
+    msg = f"{feature.human_friendly_name} has been set to {value}"
 
     if feature.requires_restart and is_connection_active:
         msg += ", please establish a new VPN connection for " \
             "changes to take effect."
 
+    msg += _feature_specific_success_postfix(feature, value)
+
     click.echo(msg)
+
+
+def _feature_specific_success_postfix(
+    feature: ClickFeature,
+    value: str,
+):
+    if feature.command == PORT_FORWARDING_FEATURE.command and \
+       value == ToggleType.get_human_friendly_state_string(True):
+        return \
+            "\nWhen connected to a P2P server, the VPN will request a forwarded port.\n" \
+            "To receive and maintain your port, follow the setup guide:\n" \
+            "https://protonvpn.com/support/port-forwarding-manual-setup#linux"
+
+    return ""
 
 
 @click.group()

@@ -325,6 +325,57 @@ def test_connect_notifies_when_successfully_connected(
 
 
 @pytest.mark.parametrize(
+    "port_forwarding_enabled, server_supports_port_forwarding", 
+    [
+        (True, True),
+        (True, False),
+        (False, True),
+        (False, False),
+    ]
+)
+def test_connect_notifies_of_port_forwarding_server_capabilities_when_successfully_connected(
+    runner: CliRunner,
+    test_context: click.Context,
+    controller_mock: AsyncMock,
+    port_forwarding_enabled: bool,
+    server_supports_port_forwarding: bool
+):
+    def find_logical_server(*_):
+        server_mock = Mock()
+        server_mock.features = \
+            [ServerFeatureEnum.P2P] if server_supports_port_forwarding else []
+        return server_mock
+
+    def get_settings(*_):
+        settings_mock = AsyncMock()
+        settings_mock.features.port_forwarding = port_forwarding_enabled
+        return settings_mock
+
+    controller_mock.get_settings.side_effect = get_settings
+    controller_mock.find_logical_server.side_effect = find_logical_server
+
+    result = runner.invoke(
+        app_cmd,
+        [CONNECT_COMMAND, "server_id"],
+        parent=test_context
+    )
+
+    assert result.exit_code == 0
+    assert \
+        ("\nPort forwarding is active on this server.\n"
+         "To get your forwarded port, run the natpmpc setup script.\n"
+         "Guide: https://protonvpn.com/support/port-forwarding-manual-setup#linux"
+         in result.output) \
+        == (port_forwarding_enabled and server_supports_port_forwarding)
+
+    assert \
+        ("\nNote: Port forwarding is enabled but this server does not support it.\n"
+         "Connect to a P2P server to use port forwarding:"
+         f"{test_context.info_name} {CONNECT_COMMAND} --p2p" in result.output) \
+        == (port_forwarding_enabled and not server_supports_port_forwarding)
+
+
+@pytest.mark.parametrize(
     "protocol, supported",
     [
         ("openvpn-udp", False),

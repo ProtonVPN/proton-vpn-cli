@@ -26,6 +26,7 @@ from proton.vpn.cli import app as app_cmd
 from proton.vpn.cli.commands.account import SIGNIN_COMMAND, SIGNOUT_COMMAND
 from proton.vpn.cli.commands.settings import \
     BOOL_FEATURES, \
+    PORT_FORWARDING_FEATURE, \
     CUSTOM_DNS_FEATURE, \
     NETSHIELD_FEATURE, \
     KILLSWITCH_FEATURE, \
@@ -199,6 +200,27 @@ def test_setting_custom_dns_fails_when_not_provided_with_valid_ips(
 
     assert result.exit_code == 2
     assert "Invalid DNS address 'invalid_ip'. Please provide a valid IPv4 address." \
+           in result.output
+
+
+def test_enabling_port_forwarding_informs_of_required_manual_setup(
+    runner: CliRunner,
+    test_context: click.Context,
+    controller_mock: AsyncMock
+):
+    result = runner.invoke(
+        app_cmd,
+        [CONFIG_COMMAND,
+         SET_COMMAND,
+         PORT_FORWARDING_FEATURE.command,
+         PORT_FORWARDING_FEATURE.click_type.to_str(True)],
+        parent=test_context
+    )
+
+    assert result.exit_code == 0
+    assert "\nWhen connected to a P2P server, the VPN will request a forwarded port.\n" \
+           "To receive and maintain your port, follow the setup guide:\n" \
+           "https://protonvpn.com/support/port-forwarding-manual-setup#linux" \
            in result.output
 
 

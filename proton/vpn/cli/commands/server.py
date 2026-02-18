@@ -151,6 +151,8 @@ async def connect(
         if server_ip:
             click.echo(f"Your new IP address is {server_ip}.")
 
+        await _display_relevant_server_capabilities(controller, server)
+
         protocol = (await controller.get_settings()).protocol
         _display_openvpn_warning_if_necessary(protocol)
     elif server:
@@ -186,6 +188,27 @@ def _get_most_specific_server_location(server: LogicalServer) -> str:
     return server.entry_country_name
 
 
+async def _display_relevant_server_capabilities(
+    controller: Controller,
+    server: LogicalServer
+):
+    settings = await controller.get_settings()
+    if settings.features.port_forwarding:
+        port_forwarding_enabled_server = ServerFeatureEnum.P2P in server.features
+        if port_forwarding_enabled_server:
+            click.echo(
+                "\nPort forwarding is active on this server.\n"
+                "To get your forwarded port, run the natpmpc setup script.\n"
+                "Guide: https://protonvpn.com/support/port-forwarding-manual-setup#linux"
+            )
+        else:
+            click.echo(
+                "\nNote: Port forwarding is enabled but this server does not support it.\n"
+                "Connect to a P2P server to use port forwarding:"
+                f"{controller.program_name} {CONNECT_COMMAND} --p2p"
+            )
+
+
 OPENVPN_UDP = "openvpn-udp"
 OPENVPN_TCP = "openvpn-tcp"
 
@@ -193,7 +216,7 @@ OPENVPN_TCP = "openvpn-tcp"
 def _display_openvpn_warning_if_necessary(protocol: str):
     if protocol in [OPENVPN_UDP, OPENVPN_TCP]:
         click.echo(
-            "OpenVPN is not fully supported in CLI and you may experience instability. "
+            "\nOpenVPN is not fully supported in CLI and you may experience instability. "
             "For best results, use WireGuard."
         )
 
