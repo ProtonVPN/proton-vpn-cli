@@ -30,7 +30,7 @@ from dbus_fast import BusType, Message, MessageType
 
 
 from proton.vpn.cli.commands.account import signin, signout, info
-from proton.vpn.cli.commands.server import connect, disconnect
+from proton.vpn.cli.commands.server import connect, disconnect, status
 from proton.vpn.cli.commands.location_discovery import countries, cities
 from proton.vpn.cli.commands.set import config
 from proton.vpn.cli.core.controller import Params
@@ -119,6 +119,7 @@ app.add_command(info)
 
 # server related functionality
 app.add_command(connect)
+app.add_command(status)
 app.add_command(disconnect)
 
 # listing functionality

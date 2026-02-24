@@ -150,7 +150,87 @@ async def connect(
             "Try connecting to a different server or check your network settings."
         )
 
+
 CONNECT_COMMAND = connect.name
+
+
+@click.command()
+@click.pass_context
+@click.option("-j", "--json", is_flag=True, help="Dump status as JSON")
+@click.option("-s", "--simple", is_flag=True, help="Print simple status to stdout, useful for i3bar or polybar.")
+@run_async
+async def status(ctx, json: bool = False, simple: bool = False):
+    """Get status from Proton VPN"""
+    controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
+    connector = await controller.get_vpn_connector()
+    connection = connector.current_connection
+
+    # Bail early if disconnected.
+    if connection is None:
+        print("ProtonVPN: Disconnected")
+        return
+
+    server = await controller.find_logical_server(connection.server_name)
+    state = connector.current_state
+
+    # Bail early if disconnected.
+    if state is None:
+        print("ProtonVPN: Disconnected")
+        return
+
+    # _Try_ to get connection details... sometimes it's not populated though???
+    _details = state.context.event.context.connection_details
+    if _details is None:
+        details = {}
+    else:
+        details = {
+            "exit": {
+                "ipv4": _details.server_ipv4,
+                "ipv6": _details.server_ipv6,
+            },
+            "device": {
+                "ip": _details.device_ip,
+                "country": _details.device_country
+            }
+        }
+
+    status = {
+        "exit": {
+            "city": server.city,
+            "country": server.exit_country,
+            "name": connection.server_name,
+            **details.get("exit", {}),
+        },
+        "entry": {
+            "country": server.entry_country,
+            "ip": connection.server_ip,
+            "name": connection.server_name,
+            "device": {
+                **details.get("device", {})
+            }
+        },
+    }
+
+    if json:
+        import json
+        return json.dumps(status)
+
+    elif simple:
+        _ip = status["exit"].get("ipv4", "")
+        click.echo(
+            f"ProtonVPN: {status["exit"]["name"]}"
+            f"{f" ({_ip})" if _ip else ""}"
+        )
+        return status
+
+    else:
+        click.echo(
+            f"Connected to {status["exit"]["name"]} "
+            f"in {_get_most_specific_server_location(server)}. "
+            f"Your new IP address is {status["exit"].get("ipv4", "Unknown")}."
+        )
+        # print(status)
+        return status
 
 
 @click.command()
