@@ -41,6 +41,7 @@ from proton.vpn.cli.commands.feature_setting_definitions import \
     KILLSWITCH_FEATURE, \
     NETSHIELD_FEATURE, \
     PORT_FORWARDING_FEATURE
+from proton.vpn.cli.commands.server import DISCONNECT_COMMAND
 
 
 CONFIG_COMMAND = "config"
@@ -182,6 +183,12 @@ for _feature in BOOL_FEATURES:
 async def killswitch_command(ctx: click.Context, mode: str) -> None:
     """Configure Kill Switch to block internet if VPN connection drops."""
     controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
+    if await controller.is_connection_active():
+        raise click.UsageError(
+            "Disconnect before changing Kill Switch. "
+            f"Run '{controller.program_name} {DISCONNECT_COMMAND}' first."
+        )
+
     killswitch_value = KillSwitchType.from_str(mode)
 
     try:

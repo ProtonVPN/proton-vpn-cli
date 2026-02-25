@@ -28,9 +28,11 @@ from proton.vpn.cli.commands.feature_setting_definitions import \
     ALL_FEATURES, \
     PORT_FORWARDING_FEATURE, \
     CUSTOM_DNS_FEATURE, \
+    KILLSWITCH_FEATURE, \
     NetshieldType, \
     CustomDNSType, \
     ClickFeature
+from proton.vpn.cli.commands.server import DISCONNECT_COMMAND
 from proton.vpn.cli.commands.settings import \
     CONFIG_COMMAND, \
     SET_COMMAND, \
@@ -40,6 +42,7 @@ from proton.vpn.cli.core.exceptions import \
     RequiresHigherTierError, \
     InvalidDNS
 from proton.vpn.core.settings.custom_dns import CustomDNS
+from proton.vpn.killswitch.interface import KillSwitchState
 
 
 def test_setting_all_features_fails_when_not_signed_in(
@@ -51,6 +54,7 @@ def test_setting_all_features_fails_when_not_signed_in(
         raise AuthenticationRequiredError
 
     controller_mock.save_feature_setting.side_effect = save_feature_setting
+    controller_mock.is_connection_active.return_value = False
 
     for feature in ALL_FEATURES:
         value = feature.click_type.to_list_of_str()[0]
@@ -105,6 +109,8 @@ def test_setting_all_features_shows_message_confirming_success(
     test_context: click.Context,
     controller_mock: AsyncMock
 ):
+    controller_mock.is_connection_active.return_value = False
+
     for feature in ALL_FEATURES:
         first_value_str = feature.click_type.to_list_of_str()[0]
         first_value_setting = feature.click_type.from_str(first_value_str)
@@ -136,19 +142,19 @@ def test_setting_all_features_explains_reconnection_required_for_relevant_featur
     controller_mock.is_connection_active.return_value = True
 
     for feature in ALL_FEATURES:
-        first_value_str = feature.click_type.to_list_of_str()[0]
-        result = runner.invoke(
-            app_cmd,
-            [CONFIG_COMMAND,
-             SET_COMMAND,
-             feature.command,
-             first_value_str],
-            parent=test_context
-        )
-
-        assert result.exit_code == 0
-
         if feature.requires_restart:
+            first_value_str = feature.click_type.to_list_of_str()[0]
+            result = runner.invoke(
+                app_cmd,
+                [CONFIG_COMMAND,
+                 SET_COMMAND,
+                 feature.command,
+                 first_value_str],
+                parent=test_context
+            )
+
+            assert result.exit_code == 0
+
             assert ", please establish a new VPN connection for changes to take effect." \
                    in result.output
 
@@ -218,6 +224,39 @@ def test_enabling_port_forwarding_informs_of_required_manual_setup(
            "To receive and maintain your port, follow the setup guide:\n" \
            "https://protonvpn.com/support/port-forwarding-manual-setup#linux" \
            in result.output
+
+
+@pytest.mark.parametrize(
+    "is_connected, killswitch_state",
+    [
+        (True, KillSwitchState.OFF),
+        (True, KillSwitchState.ON),
+        (False, KillSwitchState.OFF),
+        (False, KillSwitchState.ON),
+    ]
+)
+def test_modifying_killswitch_only_succeeds_when_disconnected(
+    runner: CliRunner,
+    test_context: click.Context,
+    controller_mock: AsyncMock,
+    is_connected: bool,
+    killswitch_state: KillSwitchState
+):
+    controller_mock.is_connection_active.return_value = is_connected
+
+    result = runner.invoke(
+        app_cmd,
+        [CONFIG_COMMAND,
+         SET_COMMAND,
+         KILLSWITCH_FEATURE.command,
+         KILLSWITCH_FEATURE.click_type.to_str(killswitch_state)],
+        parent=test_context
+    )
+
+    assert result.exit_code == (2 if is_connected else 0)
+    assert ("Disconnect before changing Kill Switch. "
+            f"Run '{test_context.info_name} {DISCONNECT_COMMAND}' first."
+            in result.output) == is_connected
 
 
 def test_listing_all_settings_fails_when_not_signed_in(
