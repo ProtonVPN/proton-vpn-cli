@@ -1,3 +1,12 @@
+version: 0.1.8rc2
+time: 2026/02/23 18:46
+author: Richard Paterson
+email: richard.paterson@proton.ch
+urgency: low
+stability: unstable
+description:
+- "feat: Improves command help and guidance"
+---
 version: 0.1.8rc1
 time: 2026/02/17 15:50
 author: Richard Paterson

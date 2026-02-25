@@ -28,10 +28,11 @@ import click
 from dbus_fast.aio import MessageBus
 from dbus_fast import BusType, Message, MessageType
 
+from proton.vpn.cli._program_name import PROGRAM_NAME
 from proton.vpn.cli.commands.account import signin, signout, info
 from proton.vpn.cli.commands.server import connect, disconnect
 from proton.vpn.cli.commands.location_discovery import countries, cities
-from proton.vpn.cli.commands.settings import config
+from proton.vpn.cli.commands.settings import config, SETTINGS_LIST_COMMAND
 from proton.vpn.cli.core.controller import Params
 from proton.vpn.cli.core.run_async import run_async
 
@@ -48,6 +49,11 @@ PROTON_VPN_LOGO = r"""
  |_|   |_|  \___/ \__\___/|_| |_|    \_/  |_|   |_| \_|"""
 
 GTK_APP_ID = "proton.vpn.app.gtk"
+
+HELP_OPTION = "--help"
+HELP_OPTION_ABBREVIATED = "-h"
+
+_CLICK_CONTEXT_SETTINGS = {"help_option_names": [HELP_OPTION, HELP_OPTION_ABBREVIATED]}
 
 
 async def _vpn_gui_running() -> bool:
@@ -69,9 +75,6 @@ async def _vpn_gui_running() -> bool:
     return GTK_APP_ID in session_bus_names
 
 
-_CLICK_CONTEXT_SETTINGS = {"help_option_names": ['--help', '-h']}
-
-
 def _is_help_requested() -> bool:
     for help_flag in _CLICK_CONTEXT_SETTINGS["help_option_names"]:
         if help_flag in sys.argv:
@@ -89,10 +92,30 @@ class _OrderedGroup(click.Group):
 @click.group(
     cls=_OrderedGroup,
     context_settings=_CLICK_CONTEXT_SETTINGS,
-    help=f"\b {PROTON_VPN_LOGO} {__version__}",
-    epilog="""\b
-              NEED HELP?
-              Report issues:  https://protonvpn.com/support-form""")
+    help=f"\b {PROTON_VPN_LOGO} {__version__} \n\n Proton VPN command-line interface for Linux.",
+    epilog=f"""\b
+              Examples:
+                {PROGRAM_NAME} {signin.name}                      # Sign in
+                {PROGRAM_NAME} {connect.name}                     # Connect to fastest server
+                {PROGRAM_NAME} {connect.name} --country US        # Connect to US
+                {PROGRAM_NAME} {config.name} {SETTINGS_LIST_COMMAND: <20} # View settings
+                {PROGRAM_NAME} {disconnect.name}                  # Disconnect
+              \b
+              Quick Start:
+                1. Sign in:    {PROGRAM_NAME} {signin.name}
+                2. Connect:    {PROGRAM_NAME} {connect.name}
+                3. Disconnect: {PROGRAM_NAME} {disconnect.name}
+              \b
+              Get Command Help:
+                {PROGRAM_NAME} [command] --help
+              \b
+              Documentation:
+                https://protonvpn.com/support/cli-guide
+              \b
+              Support:
+                https://protonvpn.com/support-form
+                support@protonvpn.com"""
+)
 @click.option(
     '-v',
     '--verbose',

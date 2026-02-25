@@ -18,273 +18,34 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with ProtonVPN.  If not, see <https://www.gnu.org/licenses/>.
 """
-from __future__ import annotations
-from abc import abstractmethod
-from dataclasses import dataclass
-from typing import Any, Protocol
-
 import click
 from tabulate import tabulate
 
-from proton.vpn.killswitch.interface import KillSwitchState
-from proton.vpn.core.settings.features import NetShield
-from proton.vpn.core.settings.custom_dns import CustomDNS
+from proton.vpn.cli._program_name import PROGRAM_NAME
 from proton.vpn.cli.core.run_async import run_async
-from proton.vpn.cli.core.controller import Controller, Feature
-from proton.vpn.cli.core.exceptions import AuthenticationRequiredError, \
-    RequiresHigherTierError, InvalidDNS
+from proton.vpn.cli.core.controller import Controller
+from proton.vpn.cli.core.exceptions import \
+    AuthenticationRequiredError, \
+    RequiresHigherTierError, \
+    InvalidDNS
 from proton.vpn.cli.commands.account import SIGNIN_COMMAND, SIGNOUT_COMMAND
-
-
-class ClickArgType(Protocol):
-    """Maps between VPN state types and click friendly formats"""
-
-    @staticmethod
-    @abstractmethod
-    def get_human_friendly_state_string(value: Any) -> str:
-        """Returns human friendly state string for the specified value."""
-        raise NotImplementedError
-
-    @staticmethod
-    @abstractmethod
-    def to_list_of_str() -> list[str]:
-        """Converts to a list of all possible click value strings
-
-        This is a necessary change because <8.2.0, `click.Choice`
-        can only take a list of strings. With version >=8.2.0 click
-        supports non-string choices (you can pass an enum class).
-        This change is to make it backwards compatible, as on Fedora 43
-        click is v8.1.7 and on Ubuntu 24.04 v8.1.6.
-        See more here: https://click.palletsprojects.com/en/stable/api/#click.Choice
-        """
-        raise NotImplementedError
-
-    @staticmethod
-    @abstractmethod
-    def from_str(value: str) -> Any:
-        """Returns value based on provided click string"""
-        raise NotImplementedError
-
-    @staticmethod
-    @abstractmethod
-    def to_str(value: Any) -> str:
-        """Returns click string based on provided value"""
-        raise NotImplementedError
-
-
-class ToggleType(ClickArgType):
-    """Represents simple binary options that a user can select."""
-
-    @staticmethod
-    def get_human_friendly_state_string(value: bool) -> str:
-        """Returns human friendly state string for the specified value."""
-        if value is False:
-            return "disabled"
-
-        return "enabled"
-
-    @staticmethod
-    def to_list_of_str() -> list[str]:
-        """Converts to a list of all possible click value strings"""
-        return ["off", "on"]
-
-    @staticmethod
-    def from_str(value: str) -> bool:
-        """Returns value based on provided click string"""
-        if value.lower() == "off":
-            return False
-
-        return True
-
-    @staticmethod
-    def to_str(value: bool) -> str:
-        """Returns click string based on provided value"""
-        if value is False:
-            return "off"
-
-        return "on"
-
-
-class CustomDNSType(ToggleType):
-    """Toggle extension for CustomDNS"""
-
-    @staticmethod
-    def to_str(value: CustomDNS) -> str:
-        """Returns click string based on provided value"""
-        enabled = ToggleType.to_str(value.enabled)
-
-        max_ip_list_length = 2
-        if value.ip_list:
-            ips = value.ip_list[:max_ip_list_length]
-            ips_to_show = [str(dns.ip) for dns in ips]
-            if len(value.ip_list) > max_ip_list_length:
-                ips_to_show.append("...")
-            return f"{enabled}  [{', '.join(ips_to_show)}]"
-
-        # no DNS IPs to show
-        return enabled
-
-
-class KillSwitchType(ClickArgType):
-    """Represents the various kill switch states that a user can select"""
-    # Advanced option is temporarily removed as
-    # currently it's not possible to establish a connection with it enabled,
-    # while being disconnected.
-
-    @staticmethod
-    def get_human_friendly_state_string(value: KillSwitchState) -> str:
-        """Returns human friendly state string for the specified value."""
-        if value == KillSwitchState.OFF:
-            return "disabled"
-
-        return "standard"
-
-    @staticmethod
-    def to_list_of_str() -> list[str]:
-        """Converts to a list of all possible click value strings
-
-        See explanation above.
-        """
-        return ["off", "standard"]
-
-    @staticmethod
-    def from_str(value: str) -> KillSwitchState:
-        """Returns value based on provided click string"""
-        if value.upper() == KillSwitchState.OFF.name:
-            return KillSwitchState.OFF
-
-        return KillSwitchState.ON
-
-    @staticmethod
-    def to_str(value: KillSwitchState) -> str:
-        """Returns click string based on provided value"""
-        if value == KillSwitchState.OFF:
-            return "off"
-
-        return "standard"
-
-
-class NetshieldType(ClickArgType):
-    """Represent the various netshield states that a user can select"""
-    @staticmethod
-    def get_human_friendly_state_string(value: NetShield) -> str:
-        """Returns human friendly state string for the specified value."""
-        if value == NetShield.NO_BLOCK:
-            return "disabled"
-
-        if value == NetShield.BLOCK_MALICIOUS_URL:
-            return "malware only"
-
-        return "malware, ads and trackers"
-
-    @staticmethod
-    def to_list_of_str() -> list[str]:
-        """Converts to a list of all possible click value strings"""
-        return ["off", "malware-only", "malware-ads-trackers"]
-
-    @staticmethod
-    def from_str(value: str) -> NetShield:
-        """Returns value based on provided click string"""
-        if value == "off":
-            return NetShield.NO_BLOCK
-
-        if value == "malware-only":
-            return NetShield.BLOCK_MALICIOUS_URL
-
-        return NetShield.BLOCK_ADS_AND_TRACKING
-
-    @staticmethod
-    def to_str(value: NetShield) -> str:
-        """Returns click string based on provided value"""
-        if value == NetShield.NO_BLOCK:
-            return "off"
-
-        if value == NetShield.BLOCK_MALICIOUS_URL:
-            return "malware-only"
-
-        return "malware-ads-trackers"
-
-
-@dataclass
-class ClickFeature(Feature):
-    """Click specific feature data"""
-    command: str = None
-    human_friendly_name: str = None
-    short_help: str = None
-    click_type: ClickArgType = None
-
-
-REQUIRES_SUBSCRIPTION_PLAN = ". Requires subscription plan"
-
-
-VPN_ACCELERATOR_FEATURE = ClickFeature(
-    command="vpn-accelerator",
-    human_friendly_name="VPN Accelerator",
-    setting_path="features.vpn_accelerator",
-    short_help=f"Toggle VPN Accelerator{REQUIRES_SUBSCRIPTION_PLAN}",
-    click_type=ToggleType()
-)
-MODERATE_NAT_FEATURE = ClickFeature(
-    command="moderate-nat",
-    human_friendly_name="Moderate NAT",
-    setting_path="features.moderate_nat",
-    short_help=f"Toggle Moderate NAT{REQUIRES_SUBSCRIPTION_PLAN}",
-    click_type=ToggleType()
-)
-IPV6_FEATURE = ClickFeature(
-    command="ipv6",
-    human_friendly_name="IPv6",
-    setting_path="ipv6",
-    short_help="Toggle IPv6",
-    available_on_free_tier=True,
-    requires_restart=True,
-    click_type=ToggleType()
-)
-ANON_CRASH_REPORTS_FEATURE = ClickFeature(
-    command="anonymous-crash-reports",
-    human_friendly_name="Anonymous crash reports",
-    setting_path="anonymous_crash_reports",
-    short_help="Toggle anonymous crash reports",
-    available_on_free_tier=True,
-    click_type=ToggleType()
-)
-PORT_FORWARDING_FEATURE = ClickFeature(
-    command="port-forwarding",
-    human_friendly_name="Port forwarding",
-    setting_path="features.port_forwarding",
-    short_help=f"Toggle Port forwarding{REQUIRES_SUBSCRIPTION_PLAN}",
-    click_type=ToggleType()
-)
-CUSTOM_DNS_FEATURE = ClickFeature(
-    command="custom-dns",
-    human_friendly_name="Custom DNS",
-    setting_path="custom_dns",
-    short_help=f"Toggle Custom DNS and set DNS servers{REQUIRES_SUBSCRIPTION_PLAN}",
-    requires_restart=True,
-    click_type=CustomDNSType()
-)
-NETSHIELD_FEATURE = ClickFeature(
-    command="netshield",
-    human_friendly_name="NetShield",
-    setting_path="features.netshield",
-    short_help=f"Set NetShield mode{REQUIRES_SUBSCRIPTION_PLAN}",
-    click_type=NetshieldType()
-)
-KILLSWITCH_FEATURE = ClickFeature(
-    command="kill-switch",
-    human_friendly_name="Kill switch",
-    setting_path="killswitch",
-    available_on_free_tier=True,
-    click_type=KillSwitchType()
-)
-
-BOOL_FEATURES = [
-    VPN_ACCELERATOR_FEATURE,
-    MODERATE_NAT_FEATURE,
-    IPV6_FEATURE,
-    ANON_CRASH_REPORTS_FEATURE,
+from proton.vpn.cli.commands.feature_setting_definitions import \
+    ALL_FEATURES, \
+    BOOL_FEATURES, \
+    ClickFeature, \
+    ToggleType, \
+    KillSwitchType, \
+    NetshieldType, \
+    CUSTOM_DNS_FEATURE, \
+    IPV6_FEATURE, \
+    KILLSWITCH_FEATURE, \
+    NETSHIELD_FEATURE, \
     PORT_FORWARDING_FEATURE
-]
+
+
+CONFIG_COMMAND = "config"
+SET_COMMAND = "set"
+SETTINGS_LIST_COMMAND = "list"
 
 
 def _raise_error_auth_required(controller: Controller, action: str) -> None:
@@ -332,22 +93,60 @@ def _feature_specific_success_postfix(
     return ""
 
 
-@click.group()
+def _build_config_epilog() -> str:
+    lines = [f"""\b
+Examples:
+  {PROGRAM_NAME} {CONFIG_COMMAND} {SETTINGS_LIST_COMMAND}
+  {PROGRAM_NAME} {CONFIG_COMMAND} {SET_COMMAND} {NETSHIELD_FEATURE.command} malware-ads-trackers
+  {PROGRAM_NAME} {CONFIG_COMMAND} {SET_COMMAND} {KILLSWITCH_FEATURE.command} standard
+  {PROGRAM_NAME} {CONFIG_COMMAND} {SET_COMMAND} {IPV6_FEATURE.command} on
+\b
+Available Settings:"""]
+
+    for feature in ALL_FEATURES:
+        lines.append(f"  {feature.command:<22} {feature.available_setting_description}")
+
+    lines.extend([f"""\b
+For setting-specific help:
+  {PROGRAM_NAME} {CONFIG_COMMAND} {SET_COMMAND} <setting> --help"""])
+
+    return "\n".join(lines)
+
+
+@click.group(
+    name=CONFIG_COMMAND,
+    epilog=_build_config_epilog()
+)
 def config():
-    """Configure Proton VPN settings"""
-
-
-CONFIG_COMMAND = config.name
-SET_COMMAND = "set"
+    """Configure Proton VPN settings."""
 
 
 @config.group(name=SET_COMMAND)
 def set_group():
-    """Change a specific setting"""
+    """Change a specific setting."""
 
 
-def _register_bool_feature_command(group: click.Group, feature: Feature):
-    @group.command(name=feature.command, help=feature.short_help)
+def _format_setting_epilog(feature: ClickFeature) -> str:
+    values_with_help = []
+    for value_str in feature.click_type.to_list_of_str():
+        values_with_help.append(f"  {value_str}   {feature.value_to_help[value_str]}")
+
+    return feature.help_epilog.format(
+        feature_values="\n".join(values_with_help),
+        program_name=PROGRAM_NAME,
+        config_command=CONFIG_COMMAND,
+        set_command=SET_COMMAND,
+        settings_list_command=SETTINGS_LIST_COMMAND,
+        feature_command=feature.command,
+    )
+
+
+def _register_bool_feature_command(group: click.Group, feature: ClickFeature):
+    @group.command(
+        name=feature.command,
+        help=feature.help_description,
+        epilog=_format_setting_epilog(feature)
+    )
     @click.argument("state", type=click.Choice(ToggleType.to_list_of_str(), case_sensitive=False))
     @click.pass_context
     @run_async
@@ -372,12 +171,16 @@ for _feature in BOOL_FEATURES:
     _register_bool_feature_command(set_group, _feature)
 
 
-@set_group.command(name=KILLSWITCH_FEATURE.command, help=KILLSWITCH_FEATURE.short_help)
+@set_group.command(
+    name=KILLSWITCH_FEATURE.command,
+    help=KILLSWITCH_FEATURE.help_description,
+    epilog=_format_setting_epilog(KILLSWITCH_FEATURE)
+)
 @click.argument("mode", type=click.Choice(KillSwitchType.to_list_of_str(), case_sensitive=False))
 @click.pass_context
 @run_async
 async def killswitch_command(ctx: click.Context, mode: str) -> None:
-    """Set Kill Switch mode"""
+    """Configure Kill Switch to block internet if VPN connection drops."""
     controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
     killswitch_value = KillSwitchType.from_str(mode)
 
@@ -392,7 +195,11 @@ async def killswitch_command(ctx: click.Context, mode: str) -> None:
         )
 
 
-@set_group.command(name=NETSHIELD_FEATURE.command, help=NETSHIELD_FEATURE.short_help)
+@set_group.command(
+    name=NETSHIELD_FEATURE.command,
+    help=NETSHIELD_FEATURE.help_description,
+    epilog=_format_setting_epilog(NETSHIELD_FEATURE)
+)
 @click.argument(
     "mode",
     type=click.Choice(NetshieldType.to_list_of_str(), case_sensitive=False),
@@ -400,7 +207,7 @@ async def killswitch_command(ctx: click.Context, mode: str) -> None:
 @click.pass_context
 @run_async
 async def netshield_command(ctx: click.Context, mode: str) -> None:
-    """Set NetShield mode"""
+    """Configure NetShield ad-blocking and malware protection."""
     controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
     netshield_value = NetshieldType.from_str(mode)
 
@@ -417,13 +224,17 @@ async def netshield_command(ctx: click.Context, mode: str) -> None:
         )
 
 
-@set_group.command(name=CUSTOM_DNS_FEATURE.command, help=CUSTOM_DNS_FEATURE.short_help)
+@set_group.command(
+    name=CUSTOM_DNS_FEATURE.command,
+    help=CUSTOM_DNS_FEATURE.help_description,
+    epilog=_format_setting_epilog(CUSTOM_DNS_FEATURE)
+)
 @click.argument("state", type=click.Choice(ToggleType.to_list_of_str(), case_sensitive=False))
-@click.option("--dns", "dns_csv", help="Comma-separated DNS servers, e.g. 1.1.1.1,9.9.9.9")
+@click.option("--dns", "dns_csv", help="Comma-separated DNS server IPs (IPv4 or IPv6)")
 @click.pass_context
 @run_async
 async def custom_dns_command(ctx: click.Context, state: str, dns_csv: str | None) -> None:
-    """Toggle Custom DNS and set DNS servers"""
+    """Configure custom DNS servers."""
     controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
     toggle_value = ToggleType.from_str(state)
 
@@ -460,20 +271,15 @@ async def custom_dns_command(ctx: click.Context, state: str, dns_csv: str | None
         )
 
 
-SETTINGS_LIST_COMMAND = "list"
-
-
 @config.command(name=SETTINGS_LIST_COMMAND)
 @click.pass_context
 @run_async
 async def list_features(ctx: click.Context):
-    """Show current configuration for all settings"""
+    """Show current configuration for all settings."""
     controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
 
-    all_features = BOOL_FEATURES.copy()
-    all_features.extend([CUSTOM_DNS_FEATURE, KILLSWITCH_FEATURE, NETSHIELD_FEATURE])
     settings_table = []
-    for feature in all_features:
+    for feature in ALL_FEATURES:
         try:
             setting = await controller.get_feature_setting(feature)
         except AuthenticationRequiredError:
@@ -506,7 +312,7 @@ async def list_features(ctx: click.Context):
             f"    {program_name} {SIGNOUT_COMMAND} && {program_name} {SIGNIN_COMMAND}"
         )
     else:
-        full_set_command_str = f"{controller.program_name} {config.name} {set_group.name}"
+        full_set_command_str = f"{controller.program_name} {CONFIG_COMMAND} {SET_COMMAND}"
         help_option_str = ctx.help_option_names[0]
         click.echo(
             f"Use '{full_set_command_str} <setting> <value>' to change settings.\n"

@@ -22,6 +22,8 @@ along with ProtonVPN.  If not, see <https://www.gnu.org/licenses/>.
 import getpass
 
 import click
+
+from proton.vpn.cli._program_name import PROGRAM_NAME
 from proton.vpn.cli.core.controller import Controller
 from proton.vpn.cli.core.exceptions import \
     Authentication2FAFailedError, \
@@ -30,12 +32,27 @@ from proton.vpn.cli.core.exceptions import \
 from proton.vpn.cli.core.run_async import run_async
 
 
-@click.command()
+SIGNIN_COMMAND = "signin"
+SIGNOUT_COMMAND = "signout"
+
+
+@click.command(
+    name=SIGNIN_COMMAND,
+    epilog=f"""\b
+           Examples:
+             {PROGRAM_NAME} {SIGNIN_COMMAND} user@proton.me"""
+)
 @click.argument('username')
 @click.pass_context
 @run_async
 async def signin(ctx, username: str):
-    """Sign in with Proton VPN credentials"""
+    """
+    Sign in to Proton VPN with your credentials.
+
+    Arguments:
+
+    USERNAME Proton account username
+    """
     controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
     try:
         await controller.login(
@@ -56,24 +73,28 @@ async def signin(ctx, username: str):
             "2FA Authentication failed. Please try again."
         ) from exc
 
-SIGNIN_COMMAND = signin.name
 
-
-@click.command()
+@click.command(
+    name=SIGNOUT_COMMAND,
+    epilog=f"""\b
+           Examples:
+             {PROGRAM_NAME} {SIGNOUT_COMMAND}
+           \b
+           To sign in again:
+             {PROGRAM_NAME} {SIGNIN_COMMAND}"""
+)
 @click.pass_context
 @run_async
 async def signout(ctx):
-    """Disconnect and remove credentials """
+    """Sign out from Proton VPN and clear local credentials."""
     controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
     await controller.logout()
-
-SIGNOUT_COMMAND = signout.name
 
 
 @click.command()
 @click.pass_context
 @run_async
 async def info(ctx):
-    """Display your Proton VPN account information"""
+    """Display your Proton VPN account information."""
     controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
     click.echo(f'{controller.account_info()}')

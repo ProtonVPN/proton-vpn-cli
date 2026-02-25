@@ -24,26 +24,22 @@ from click.testing import CliRunner
 
 from proton.vpn.cli import app as app_cmd
 from proton.vpn.cli.commands.account import SIGNIN_COMMAND, SIGNOUT_COMMAND
-from proton.vpn.cli.commands.settings import \
-    BOOL_FEATURES, \
+from proton.vpn.cli.commands.feature_setting_definitions import \
+    ALL_FEATURES, \
     PORT_FORWARDING_FEATURE, \
     CUSTOM_DNS_FEATURE, \
-    NETSHIELD_FEATURE, \
-    KILLSWITCH_FEATURE, \
-    CONFIG_COMMAND, \
-    SET_COMMAND, \
-    SETTINGS_LIST_COMMAND, \
     NetshieldType, \
     CustomDNSType, \
     ClickFeature
+from proton.vpn.cli.commands.settings import \
+    CONFIG_COMMAND, \
+    SET_COMMAND, \
+    SETTINGS_LIST_COMMAND
 from proton.vpn.cli.core.exceptions import \
     AuthenticationRequiredError, \
     RequiresHigherTierError, \
     InvalidDNS
 from proton.vpn.core.settings.custom_dns import CustomDNS
-
-ALL_FEATURES = BOOL_FEATURES.copy()
-ALL_FEATURES.extend([CUSTOM_DNS_FEATURE, KILLSWITCH_FEATURE, NETSHIELD_FEATURE])
 
 
 def test_setting_all_features_fails_when_not_signed_in(

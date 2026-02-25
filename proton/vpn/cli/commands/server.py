@@ -24,6 +24,7 @@ from typing import Optional
 
 import click
 
+from proton.vpn.cli._program_name import PROGRAM_NAME
 from proton.vpn.cli.core.exceptions import \
     AuthenticationRequiredError, \
     CountryCodeError, \
@@ -38,6 +39,10 @@ from proton.vpn.cli.commands.account import SIGNIN_COMMAND
 from proton.vpn.cli.commands.command_utils import \
     inform_that_expired_serverlist_will_be_updated_if_necessary
 
+CONNECT_COMMAND = "connect"
+DISCONNECT_COMMAND = "disconnect"
+SERVER_NAME_ARGUMENT = "SERVER_NAME"
+
 
 class FailedConnection(click.ClickException):
     """When attempting to establish a connection, it fails
@@ -48,9 +53,28 @@ def _print_usage_error(msg: str):
     raise click.UsageError(msg)
 
 
-@click.command()
+@click.command(
+    name=CONNECT_COMMAND,
+    epilog=f"""\b
+Examples:
+  # Quick connection
+  {PROGRAM_NAME} {CONNECT_COMMAND}                     # Fastest server globally
+\b
+  # Location selection
+  {PROGRAM_NAME} {CONNECT_COMMAND} --country US        # Fastest in United States
+  {PROGRAM_NAME} {CONNECT_COMMAND} --city "New York"   # Fastest in New York
+  {PROGRAM_NAME} {CONNECT_COMMAND} IT#23               # Specific server
+\b
+  # Feature-based selection
+  {PROGRAM_NAME} {CONNECT_COMMAND} --p2p               # Fastest P2P server
+  {PROGRAM_NAME} {CONNECT_COMMAND} --country IT --p2p  # Fastest P2P in Italy
+\b
+  # Extra secure connections
+  {PROGRAM_NAME} {CONNECT_COMMAND} --securecore        # Secure Core routing
+  {PROGRAM_NAME} {CONNECT_COMMAND} --tor               # Tor over VPN"""
+)
 @click.pass_context
-@click.argument("server_name", required=False)
+@click.argument(SERVER_NAME_ARGUMENT, required=False)
 @click.option(
     "--country",
     default=None,
@@ -62,11 +86,11 @@ def _print_usage_error(msg: str):
     default=None,
     help="""\b
             Connect to fastest server in specified city
-            City name (use quotes for multi-word: "New York", "Los Angeles")""")
-@click.option('--p2p', is_flag=True, help="Connect to the fastest P2P-optimized server")
-@click.option("-sc", "--securecore", is_flag=True, help="Connect to the fastest Secure Core server")
-@click.option("--tor", is_flag=True, help="Connect to the fastest Tor server")
-@click.option("--random", is_flag=True, help="Connect to a random available server")
+            City name (use quotes for multi-word: \"New York\")""")
+@click.option('--p2p', is_flag=True, help="Connect to fastest P2P-optimized server")
+@click.option("-sc", "--securecore", is_flag=True, help="Connect to fastest Secure Core server")
+@click.option("--tor", is_flag=True, help="Connect to fastest Tor server")
+@click.option("--random", is_flag=True, help="Connect to random available server")
 @run_async
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-locals
@@ -81,7 +105,13 @@ async def connect(
     tor: bool,
     random: bool
 ):
-    """Connect to Proton VPN"""
+    """
+    Connect to Proton VPN server.
+
+    Arguments:
+
+    SERVER_NAME Connect to specific server by ID (e.g., IT#23)
+    """
     controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
     # Silence cancelled exceptions raised by tasks we don't need to wait for after connection.
     # For example, some tasks are usually created to process a second Connected state broadcasted
@@ -162,14 +192,22 @@ async def connect(
             "Try connecting to a different server or check your network settings."
         )
 
-CONNECT_COMMAND = connect.name
 
-
-@click.command()
+@click.command(
+    name=DISCONNECT_COMMAND,
+    epilog=f"""\b
+Examples:
+  {PROGRAM_NAME} {DISCONNECT_COMMAND}"""
+)
 @click.pass_context
 @run_async
 async def disconnect(ctx):
-    """Disconnect from Proton VPN"""
+    """Disconnect from current VPN server.
+
+        \b
+        This command will:
+          - Terminate active VPN connection
+          - Restore original network configuration"""
     controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
     await controller.disconnect()
 
@@ -289,7 +327,7 @@ def _display_free_user_limitation(
         )
         return
 
-    # when requested a random server, the user requires a paying tier
+    # when requesting a random server, the user requires a paying tier
     if random:
         proton_cli_name = controller.program_name or DEFAULT_CLI_NAME
         _print_usage_error(
