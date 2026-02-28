@@ -19,10 +19,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with ProtonVPN.  If not, see <https://www.gnu.org/licenses/>.
 """
-from asyncio import CancelledError
-from typing import Optional
 
 import click
+import json
+from pathlib import Path
+from asyncio import CancelledError
+from typing import Optional
 
 from proton.vpn.cli.core.exceptions import \
     AuthenticationRequiredError, \
@@ -35,6 +37,8 @@ from proton.vpn.cli.core.wait_for_current_tasks import wait_for_current_tasks
 from proton.vpn.session.exceptions import ServerNotFoundError
 from proton.vpn.session.servers.types import LogicalServer, ServerFeatureEnum
 from proton.vpn.cli.commands.account import SIGNIN_COMMAND
+
+TMP_FILE = Path("/tmp/protonvpn-connectiondetails.json")
 
 
 class FailedConnection(click.ClickException):
@@ -138,6 +142,11 @@ async def connect(
         # notify user of successful connection and server details
         current_connection = connection_state.context.connection
         server_ip = connection_state.context.event.context.connection_details.server_ipv4
+        if server_ip:
+            TMP_FILE.write_text(
+                json.dumps(connection_state.context.event.context.connection_details),
+                encoding="utf-8"
+            )
         click.echo(
             f"Connected to {current_connection.server_name} "
             f"in {_get_most_specific_server_location(server)}. "
@@ -179,34 +188,30 @@ async def status(ctx, json: bool = False, simple: bool = False):
         return
 
     # _Try_ to get connection details... sometimes it's not populated though???
-    _details = state.context.event.context.connection_details
-    if _details is None:
-        details = {}
-    else:
-        details = {
-            "exit": {
-                "ipv4": _details.server_ipv4,
-                "ipv6": _details.server_ipv6,
-            },
-            "device": {
-                "ip": _details.device_ip,
-                "country": _details.device_country
-            }
-        }
+    connection_details = state.context.event.context.connection_details
+
+    # If it's not populated, read from tmp file on disk, if we can
+    try:
+        stored_cd = json.loads(TMP_FILE.read_text(encoding="utf-8"))
+        connection_details = connection_details or stored_cd
+    except OSError:
+        pass
 
     status = {
         "exit": {
             "city": server.city,
             "country": server.exit_country,
             "name": connection.server_name,
-            **details.get("exit", {}),
+            "ipv4": getattr(connection_details, "server_ipv4", ""),
+            "ipv6": getattr(connection_details, "server_ipv6", "")
         },
         "entry": {
             "country": server.entry_country,
             "ip": connection.server_ip,
             "name": connection.server_name,
-            "device": {
-                **details.get("device", {})
+            "client": {
+                "ip": getattr(connection_details, "device_ip", ""),
+                "country": getattr(connection_details, "device_country", "")
             }
         },
     }
