@@ -37,6 +37,7 @@ from proton.vpn.cli.core.wait_for_current_tasks import wait_for_current_tasks
 from proton.vpn.session.exceptions import ServerNotFoundError
 from proton.vpn.session.servers.types import LogicalServer, ServerFeatureEnum
 from proton.vpn.cli.commands.account import SIGNIN_COMMAND
+from proton.vpn.connection import events
 
 TMP_FILE = Path("/tmp/protonvpn-connectiondetails.json")
 
@@ -192,9 +193,11 @@ async def status(ctx, json: bool = False, simple: bool = False):
 
     # If it's not populated, read from tmp file on disk, if we can
     try:
-        stored_cd = json.loads(TMP_FILE.read_text(encoding="utf-8"))
-        connection_details = connection_details or stored_cd
-    except OSError:
+        connection_details = connection_details or events.ConnectionDetails(
+            **json.loads(TMP_FILE.read_text(encoding="utf-8"))
+        )
+    except OSError, TypeError:
+        # Either the file wasn't there, permissions were bad, or the json was not in an expected format / malformed
         pass
 
     status = {
