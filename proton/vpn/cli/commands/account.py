@@ -23,7 +23,7 @@ import getpass
 
 import click
 
-from proton.vpn.cli._program_name import PROGRAM_NAME
+from proton.vpn.cli._cli_constants import PROGRAM_NAME
 from proton.vpn.cli.core.controller import Controller
 from proton.vpn.cli.core.exceptions import \
     Authentication2FAFailedError, \

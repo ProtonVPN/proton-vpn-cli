@@ -21,7 +21,7 @@ along with ProtonVPN.  If not, see <https://www.gnu.org/licenses/>.
 import click
 from tabulate import tabulate
 
-from proton.vpn.cli._program_name import PROGRAM_NAME
+from proton.vpn.cli._cli_constants import PROGRAM_NAME
 from proton.vpn.cli.core.run_async import run_async
 from proton.vpn.cli.core.controller import Controller
 from proton.vpn.cli.core.exceptions import \

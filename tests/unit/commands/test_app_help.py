@@ -122,7 +122,7 @@ def test_app_help_shows_documentation_url(
 
     assert result.exit_code == 0
     assert "Documentation:" in result.output
-    assert "https://protonvpn.com/support/cli-guide" in result.output
+    assert "https://protonvpn.com/support/linux-cli" in result.output
 
 
 def test_app_help_shows_support_links(

@@ -19,8 +19,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with ProtonVPN.  If not, see <https://www.gnu.org/licenses/>.
 """
-
-import asyncio
 from importlib.metadata import version, PackageNotFoundError
 import sys
 
@@ -28,13 +26,18 @@ import click
 from dbus_fast.aio import MessageBus
 from dbus_fast import BusType, Message, MessageType
 
-from proton.vpn.cli._program_name import PROGRAM_NAME
+from proton.vpn.cli._cli_constants import \
+    PROGRAM_NAME, \
+    HELP_OPTION, \
+    HELP_OPTION_ABBREVIATED
 from proton.vpn.cli.commands.account import signin, signout, info
 from proton.vpn.cli.commands.server import connect, disconnect
 from proton.vpn.cli.commands.location_discovery import countries, cities
 from proton.vpn.cli.commands.settings import config, SETTINGS_LIST_COMMAND
 from proton.vpn.cli.core.controller import Params
 from proton.vpn.cli.core.run_async import run_async
+from proton.vpn.cli.core.click_exception_handler import ClickExceptionHandler
+
 
 try:
     __version__ = version("proton-vpn-cli")
@@ -50,8 +53,6 @@ PROTON_VPN_LOGO = r"""
 
 GTK_APP_ID = "proton.vpn.app.gtk"
 
-HELP_OPTION = "--help"
-HELP_OPTION_ABBREVIATED = "-h"
 
 _CLICK_CONTEXT_SETTINGS = {"help_option_names": [HELP_OPTION, HELP_OPTION_ABBREVIATED]}
 
@@ -110,7 +111,7 @@ class _OrderedGroup(click.Group):
                 {PROGRAM_NAME} [command] --help
               \b
               Documentation:
-                https://protonvpn.com/support/cli-guide
+                https://protonvpn.com/support/linux-cli
               \b
               Support:
                 https://protonvpn.com/support-form
@@ -156,4 +157,10 @@ app.add_command(config)
 
 def main():
     """Runs the CLI."""
-    asyncio.run(app(obj=Params()))  # pylint: disable=E1120
+    try:
+        app(obj=Params(), standalone_mode=False)  # pylint: disable=E1120
+    except click.exceptions.ClickException as exc:
+        if not ClickExceptionHandler.handle_error(exc):
+            raise exc
+    except click.Abort:
+        click.echo("Abort!")

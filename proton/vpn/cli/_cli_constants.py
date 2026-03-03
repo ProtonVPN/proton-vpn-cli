@@ -22,3 +22,6 @@ import os
 import sys
 
 PROGRAM_NAME = os.path.basename(sys.argv[0]) if sys.argv else "protonvpn"
+
+HELP_OPTION = "--help"
+HELP_OPTION_ABBREVIATED = "-h"

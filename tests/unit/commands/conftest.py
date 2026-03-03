@@ -55,3 +55,15 @@ def controller_mock(test_context: click.Context) -> AsyncMock:
 def runner(test_context: click.Context) -> CliRunner:
     with test_context:
         yield CliRunner()
+
+
+@pytest.fixture
+def cli_invoke(runner: CliRunner, test_context: click.Context):
+    def _invoke(args: list):
+        return runner.invoke(
+            app_cmd,
+            args,
+            parent=test_context,
+            standalone_mode=False
+        )
+    return _invoke

@@ -24,7 +24,7 @@ from typing import Optional
 
 import click
 
-from proton.vpn.cli._program_name import PROGRAM_NAME
+from proton.vpn.cli._cli_constants import PROGRAM_NAME
 from proton.vpn.cli.core.exceptions import \
     AuthenticationRequiredError, \
     CountryCodeError, \

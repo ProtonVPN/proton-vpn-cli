@@ -1,3 +1,12 @@
+version: 0.1.8rc4
+time: 2026/02/27 12:32
+author: Richard Paterson
+email: richard.paterson@proton.ch
+urgency: low
+stability: unstable
+description:
+- "feat: Improve error presentation"
+---
 version: 0.1.8rc3
 time: 2026/02/25 14:59
 author: Richard Paterson
