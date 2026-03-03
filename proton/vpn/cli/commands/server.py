@@ -156,10 +156,7 @@ async def connect(
         )
         if server_ip:
             click.echo(f"Your new IP address is {server_ip}.")
-            TMP_FILE.write_text(
-                dumps(connection_state.context.event.context.connection_details),
-                encoding="utf-8"
-            )
+            TMP_FILE.write_text(dumps(connection_details), encoding="utf-8")
 
         protocol = (await controller.get_settings()).protocol
         _display_openvpn_warning_if_necessary(protocol)
@@ -187,7 +184,7 @@ async def status(ctx, json: bool = False, simple: bool = False):
 
     # Bail early if disconnected.
     if connection is None:
-        print("ProtonVPN: Disconnected")
+        click.echo("ProtonVPN: Disconnected")
         return
 
     server = await controller.find_logical_server(connection.server_name)
@@ -195,11 +192,14 @@ async def status(ctx, json: bool = False, simple: bool = False):
 
     # Bail early if disconnected.
     if state is None:
-        print("ProtonVPN: Disconnected")
+        click.echo("ProtonVPN: Disconnected")
         return
 
     # _Try_ to get connection details... sometimes it's not populated though???
     connection_details = state.context.event.context.connection_details
+
+    if connection_details and not TMP_FILE.exists():
+        TMP_FILE.write_text(dumps(connection_details), encoding="utf-8")
 
     # If it's not populated, read from tmp file on disk, if we can
     try:
