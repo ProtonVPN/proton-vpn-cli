@@ -18,14 +18,22 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with ProtonVPN.  If not, see <https://www.gnu.org/licenses/>.
 """
+import sys
+import os
+
 import click
 from tabulate import tabulate
+
 from proton.vpn.cli.core.run_async import run_async
 from proton.vpn.cli.core.controller import Controller
 from proton.vpn.session.servers.types import ServerFeatureEnum
-from proton.vpn.cli.core.exceptions import AuthenticationRequiredError, \
-    CountryCodeError, CountryNameError
+from proton.vpn.cli.core.exceptions import \
+    AuthenticationRequiredError, \
+    CountryCodeError, \
+    CountryNameError
 from proton.vpn.cli.commands.account import SIGNIN_COMMAND
+from proton.vpn.cli.commands.command_utils import \
+    inform_that_expired_serverlist_will_be_updated_if_necessary
 
 
 FEATURES_TO_DISPLAY = {
@@ -39,13 +47,24 @@ def _print_usage_error(msg: str):
     raise click.UsageError(msg)
 
 
-@click.command()
+@click.group()
+@run_async
+async def countries():
+    """Discover available countries"""
+
+
+COUNTRIES_COMMAND = countries.name
+COUNTRIES_LIST_COMMAND = "list"
+
+
+@countries.command(name=COUNTRIES_LIST_COMMAND)
 @click.pass_context
 @run_async
-async def countries(ctx, controller: Controller = None):
+async def list_countries(ctx):
     """Display all available countries."""
-    if not controller:
-        controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
+    controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
+
+    await inform_that_expired_serverlist_will_be_updated_if_necessary(controller)
 
     try:
         all_countries = await controller.get_all_countries()
@@ -63,27 +82,35 @@ async def countries(ctx, controller: Controller = None):
         stralign="left",
         numalign="right",
     )
-    click.echo_via_pager(table)
-
-COUNTRIES_COMMAND = countries.name
+    click.echo(table)
 
 
-@click.command(
-    epilog="""\b
-              Examples:
-                  protonvpn cities --country PT               Display cities in Portugal
-                  protonvpn cities --country US               Display cities in United States""")
-@click.pass_context
-@click.option(
-    "--country", "country_input",
-    required=True,
-    help="""\b
-            Display servers in specified country.
-            Country code (US, GB, DE) or full name ("United States")""")
+@click.group()
 @run_async
-async def cities(ctx, country_input: str):
+async def cities():
+    """Discover available cities"""
+
+
+CITIES_COMMAND = cities.name
+CITIES_LIST_COMMAND = "list"
+PROGRAM_NAME = os.path.basename(sys.argv[0])
+
+
+@cities.command(
+    name=CITIES_LIST_COMMAND,
+    epilog=f"""\b
+    Examples:
+        {PROGRAM_NAME} {cities.name} {CITIES_LIST_COMMAND} PT     Display cities in Portugal
+        {PROGRAM_NAME} {cities.name} {CITIES_LIST_COMMAND} US     Display cities in United States"""
+)
+@click.argument("country_input", required=True)
+@click.pass_context
+@run_async
+async def list_cities_in_country(ctx, country_input: str):
     """Display cities within a country"""
     controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
+
+    await inform_that_expired_serverlist_will_be_updated_if_necessary(controller)
 
     try:
         all_countries = await controller.get_all_countries()

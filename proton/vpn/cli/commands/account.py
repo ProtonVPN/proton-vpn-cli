@@ -23,6 +23,10 @@ import getpass
 
 import click
 from proton.vpn.cli.core.controller import Controller
+from proton.vpn.cli.core.exceptions import \
+    Authentication2FAFailedError, \
+    AuthenticationFailedError, \
+    SignoutRequiredError
 from proton.vpn.cli.core.run_async import run_async
 
 
@@ -33,9 +37,24 @@ from proton.vpn.cli.core.run_async import run_async
 async def signin(ctx, username: str):
     """Sign in with Proton VPN credentials"""
     controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
-    await controller.login(username,
-                           getpass.getpass,
-                           lambda: getpass.getpass("2FA Token: "))
+    try:
+        await controller.login(
+            username,
+            getpass.getpass,
+            lambda: getpass.getpass("2FA Token: ")
+        )
+    except SignoutRequiredError as exc:
+        raise click.ClickException(
+            "Already signed in, please sign out first before changing accounts."
+        ) from exc
+    except AuthenticationFailedError as exc:
+        raise click.ClickException(
+            "Authentication failed. Please check your username and password and try again."
+        ) from exc
+    except Authentication2FAFailedError as exc:
+        raise click.ClickException(
+            "2FA Authentication failed. Please try again."
+        ) from exc
 
 SIGNIN_COMMAND = signin.name
 
@@ -47,6 +66,8 @@ async def signout(ctx):
     """Disconnect and remove credentials """
     controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
     await controller.logout()
+
+SIGNOUT_COMMAND = signout.name
 
 
 @click.command()

@@ -44,6 +44,24 @@ class AuthenticationRequiredError(Exception):
     """
 
 
+class AuthenticationFailedError(Exception):
+    """
+    Error occured during authentication
+    """
+
+
+class Authentication2FAFailedError(Exception):
+    """
+    Error occured during 2FA authentication
+    """
+
+
+class SignoutRequiredError(Exception):
+    """
+    Error performing operation requiring the user to be signed out
+    """
+
+
 class RequiresHigherTierError(Exception):
     """
     Requested feature that requires a higher tier

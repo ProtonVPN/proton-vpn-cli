@@ -1,3 +1,19 @@
+version: 0.1.7
+time: 2026/02/17 13:56
+author: Richard Paterson
+email: richard.paterson@proton.ch
+urgency: low
+stability: unstable
+description:
+- "feat: simplify cities listing command"
+- "feat: reformat countries listing command"
+- "fix: recover from manually deleted cache (Elena Svilpe)"
+- "feat: add config listing command"
+- "fix: Ensure connection settings can be changed without reconnection"
+- "feat: Add warning that OpenVPN protocol is not supported by CLI"
+- "feat: Adds tests for account, connection, config and location discovery commands"
+- "feat: Custom DNS and ipv6 require a connection restart"
+---
 version: 0.1.6
 time: 2026/01/22 11:30
 author: Elena Svilpe

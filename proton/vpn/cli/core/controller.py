@@ -36,11 +36,14 @@ from proton.vpn.core.settings.custom_dns import CustomDNSEntry, CustomDNS
 from proton.vpn import logging as ProtonLogging
 from proton.vpn.cli.core.exception_handler import ExceptionHandler
 from proton.vpn.cli.core.exceptions import \
+    Authentication2FAFailedError, \
     AuthenticationRequiredError, \
+    AuthenticationFailedError, \
     CountryCodeError, \
     CountryNameError, \
-    RequiresHigherTierError, \
     InvalidDNS, \
+    RequiresHigherTierError, \
+    SignoutRequiredError, \
     VPNConnectionError
 from proton.vpn.connection import states
 from proton.vpn.connection.enum import ConnectionStateEnum
@@ -49,6 +52,7 @@ from proton.vpn.core.connection import VPNStateSubscriber, VPNConnection, VPNCon
 from proton.vpn.core.session_holder import ClientTypeMetadata
 from proton.vpn.core.settings import Settings
 from proton.vpn.session import ServerList
+from proton.vpn.session.dataclasses.servers import Country
 from proton.vpn.session.servers.country_codes import \
     validate_country_code, \
     get_country_code_for_name
@@ -60,12 +64,8 @@ DEFAULT_CLI_NAME = "protonvpn"
 
 @dataclass
 class Feature:
-    """Used when setting and saving features.
-    """
-    command: str
-    human_friendly_name: str
-    setting_path: str
-    short_help: str = None
+    """Used when setting and saving features."""
+    setting_path: str = None
     available_on_free_tier: bool = False
     requires_restart: bool = False
 
@@ -74,6 +74,8 @@ class Feature:
 class Params:
     """The parameters for constructing the Controller"""
     verbose: str = False
+    allow_gui_concurrency: bool = False
+    overriding_controller: Optional['Controller'] = None
 
 
 @asynccontextmanager
@@ -152,7 +154,7 @@ class Controller:  # pylint: disable=too-many-public-methods
     @staticmethod
     async def create(params: Params, click_ctx: ClickContext):
         """Preferred method to get an instance of Controller."""
-        controller = Controller(params, click_ctx)
+        controller = params.overriding_controller or Controller(params, click_ctx)
         # Ensure controller always has settings loaded,
         # even if only using free user defaults prior to authentication.
         # This allows crash reporting to work prior to sign in.
@@ -210,17 +212,17 @@ class Controller:  # pylint: disable=too-many-public-methods
         """Returns general settings."""
         return await self._api.load_settings()
 
-    async def save_config(
+    async def save_feature_setting(
         self,
         feature: Feature,
         value: Union[int, bool, CustomDNS]
     ):
         """Ensures that the feature is stored to disk only
-        if the subscription tier allows is.
+        if the subscription tier allows it.
 
         Args:
-            settings (Settings): settings object with the modified feature
-            feature (Feature): feature object that is used for the check
+            feature (Feature): feature whose setting will be modified
+            value: value to set for the given feature
 
         Raises:
             AuthenticationRequiredError: if user is not logged in
@@ -238,18 +240,46 @@ class Controller:  # pylint: disable=too-many-public-methods
 
         await self.save_settings(settings)
 
+    async def get_feature_setting(
+        self,
+        feature: Feature
+    ) -> Union[int, bool, CustomDNS]:
+        """Retrieves the current setting for the requested feature.
+
+        Args:
+            feature (Feature): feature whose setting will be returned
+
+        Raises:
+            AuthenticationRequiredError: if user is not logged in
+        """
+        if not self.is_logged_in:
+            raise AuthenticationRequiredError
+
+        settings = await self.get_settings()
+
+        return self._get_settings_by_path(settings, feature.setting_path)
+
     async def save_settings(self, settings: Settings):
-        """Returns general settings."""
-        # We need to call get_vpn_connector() because the API
-        # applies settings to current connection, even though
-        # currently it seems like it's not working.
-        await self.get_vpn_connector()
-        await self._api.save_settings(settings)
+        """Saves general settings."""
+        connector = await self.get_vpn_connector()
+        is_connected = connector.is_connected
+        free_user_requesting_free_features =\
+            self.user_on_free_tier and settings.features.are_free_tier_defaults()
+        if not free_user_requesting_free_features and is_connected:
+            # paying user requesting feature changes with live connection
+            # wait for LA connection event confirming feature request complete
+            async with _wait_for_event(connector,
+                                       event_types=[ConnectionStateEnum.CONNECTED]):
+                await self._api.save_settings(settings)
+        else:
+            await self._api.save_settings(settings)
 
     def _set_settings_by_path(
-        self, settings: Settings, path: str,
+        self,
+        settings: Settings,
+        path: str,
         value: Union[int, bool, CustomDNS]
-    ):
+    ) -> Settings:
         parts = path.split(".")
         current = settings
         for part in parts[:-1]:
@@ -257,6 +287,18 @@ class Controller:  # pylint: disable=too-many-public-methods
 
         setattr(current, parts[-1], value)
         return settings
+
+    def _get_settings_by_path(
+        self,
+        settings: Settings,
+        path: str
+    ) -> Union[int, bool, CustomDNS]:
+        parts = path.split(".")
+        current = settings
+        for part in parts[:-1]:
+            current = getattr(current, part)
+
+        return getattr(current, parts[-1])
 
     def parse_dns_ips(self, dns_list: list[str]) -> list[CustomDNSEntry]:
         """Parses a CSV string of DNS IPs into a list of strings.
@@ -377,7 +419,7 @@ class Controller:  # pylint: disable=too-many-public-methods
 
         return logical_server
 
-    async def get_all_countries(self):
+    async def get_all_countries(self) -> List[Country]:
         """Returns a list of countries."""
         if not self._api.is_user_logged_in():
             raise AuthenticationRequiredError
@@ -447,20 +489,18 @@ class Controller:  # pylint: disable=too-many-public-methods
             authentication token if invoked.
         """
         if self._api.is_user_logged_in():
-            print("Already signed in, please sign out first before changing accounts.")
-            return
+            raise SignoutRequiredError
 
         password = get_password()
         login_result = await self._api.login(username, password)
         if not login_result.authenticated:
-            print("Authentication failed. Please check your username and password and try again.")
-            return
+            raise AuthenticationFailedError
 
         try:
             while login_result.twofa_required:
                 login_result = await self._api.submit_2fa_code(get_2fa())
-        except ProtonAPIAuthenticationNeeded:
-            print("2FA Authentication failed. Please try again.")
+        except ProtonAPIAuthenticationNeeded as exc:
+            raise Authentication2FAFailedError from exc
 
     async def logout(self):
         """
@@ -481,11 +521,14 @@ class Controller:  # pylint: disable=too-many-public-methods
 
     async def get_updated_server_list(self) -> ServerList:
         """Returns an always-up-to-date server list."""
-        cached_server_list = self._api.server_list
-        if cached_server_list.expired or cached_server_list.loads_expired:
-            print("Server list is outdated, updating... This may take a moment.")
-
         return await self._api.refresher.get_up_to_date_server_list()
+
+    async def is_serverlist_expired(self) -> bool:
+        """Returns whether the caches serverlist has expired"""
+        cached_server_list = self._api.server_list
+        return (cached_server_list is None
+                or cached_server_list.expired
+                or cached_server_list.loads_expired)
 
     async def get_vpn_connector(self) -> VPNConnector:
         """Return the object that handles vpn connection and disconnection"""
