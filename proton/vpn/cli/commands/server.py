@@ -21,7 +21,7 @@ along with ProtonVPN.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import click
-import json
+from json import loads, dumps
 from pathlib import Path
 from asyncio import CancelledError
 from typing import Optional
@@ -145,7 +145,7 @@ async def connect(
         server_ip = connection_state.context.event.context.connection_details.server_ipv4
         if server_ip:
             TMP_FILE.write_text(
-                json.dumps(connection_state.context.event.context.connection_details),
+                dumps(connection_state.context.event.context.connection_details),
                 encoding="utf-8"
             )
         click.echo(
@@ -194,7 +194,7 @@ async def status(ctx, json: bool = False, simple: bool = False):
     # If it's not populated, read from tmp file on disk, if we can
     try:
         connection_details = connection_details or events.ConnectionDetails(
-            **json.loads(TMP_FILE.read_text(encoding="utf-8"))
+            **loads(TMP_FILE.read_text(encoding="utf-8"))
         )
     except OSError, TypeError:
         # Either the file wasn't there, permissions were bad, or the json was not in an expected format / malformed
@@ -220,8 +220,7 @@ async def status(ctx, json: bool = False, simple: bool = False):
     }
 
     if json:
-        import json
-        return json.dumps(status)
+        return dumps(status)
 
     elif simple:
         _ip = status["exit"].get("ipv4", "")
