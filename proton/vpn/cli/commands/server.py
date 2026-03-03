@@ -150,17 +150,16 @@ async def connect(
         current_connection = connection_state.context.connection
         connection_details = connection_state.context.event.context.connection_details
         server_ip = connection_details.server_ipv4 if connection_details else None
-        if server_ip:
-            TMP_FILE.write_text(
-                dumps(connection_state.context.event.context.connection_details),
-                encoding="utf-8"
-            )
         click.echo(
             f"Connected to {current_connection.server_name} "
             f"in {_get_most_specific_server_location(server)}. "
         )
         if server_ip:
             click.echo(f"Your new IP address is {server_ip}.")
+            TMP_FILE.write_text(
+                dumps(connection_state.context.event.context.connection_details),
+                encoding="utf-8"
+            )
 
         protocol = (await controller.get_settings()).protocol
         _display_openvpn_warning_if_necessary(protocol)
