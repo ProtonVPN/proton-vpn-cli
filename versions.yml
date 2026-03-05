@@ -1,3 +1,12 @@
+version: 0.1.8rc5
+time: 2026/03/03 15:29
+author: Richard Paterson
+email: richard.paterson@proton.ch
+urgency: low
+stability: unstable
+description:
+- "fix: Make click error handling compatible with older versions"
+---
 version: 0.1.8rc4
 time: 2026/02/27 12:32
 author: Richard Paterson

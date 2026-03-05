@@ -21,6 +21,7 @@ along with ProtonVPN.  If not, see <https://www.gnu.org/licenses/>.
 """
 from importlib.metadata import version, PackageNotFoundError
 import sys
+from typing import List, Optional
 
 import click
 from dbus_fast.aio import MessageBus
@@ -34,7 +35,7 @@ from proton.vpn.cli.commands.account import signin, signout, info
 from proton.vpn.cli.commands.server import connect, disconnect
 from proton.vpn.cli.commands.location_discovery import countries, cities
 from proton.vpn.cli.commands.settings import config, SETTINGS_LIST_COMMAND
-from proton.vpn.cli.core.controller import Params
+from proton.vpn.cli.core.controller import Controller, Params
 from proton.vpn.cli.core.run_async import run_async
 from proton.vpn.cli.core.click_exception_handler import ClickExceptionHandler
 
@@ -155,12 +156,27 @@ app.add_command(cities)
 app.add_command(config)
 
 
-def main():
+def main(
+    allow_concurrency: bool = False,
+    cli_args: Optional[List[str]] = None,
+    controller: Optional[Controller] = None
+):
     """Runs the CLI."""
     try:
-        app(obj=Params(), standalone_mode=False)  # pylint: disable=E1120
+        # pylint: disable=E1120
+        app(
+            obj=Params(
+                allow_gui_concurrency=allow_concurrency,
+                overriding_controller=controller
+            ),
+            standalone_mode=False,
+            args=cli_args
+        )
     except click.exceptions.ClickException as exc:
-        if not ClickExceptionHandler.handle_error(exc):
+        if ClickExceptionHandler.handle_error(exc):
+            sys.exit(exc.exit_code)
+        else:
             raise exc
     except click.Abort:
         click.echo("Abort!")
+        sys.exit(1)

@@ -18,7 +18,7 @@ along with ProtonVPN.  If not, see <https://www.gnu.org/licenses/>.
 """
 import pytest
 import click
-from click.exceptions import BadParameter, MissingParameter, NoArgsIsHelpError, UsageError
+from click.exceptions import BadParameter, MissingParameter, UsageError
 
 from proton.vpn.cli import HELP_OPTION
 from proton.vpn.cli.commands.feature_setting_definitions import ALL_FEATURES, ClickFeature
@@ -27,14 +27,7 @@ from proton.vpn.cli.commands.settings import CONFIG_COMMAND, SET_COMMAND, config
 from proton.vpn.cli.core.click_exception_handler import ClickExceptionHandler
 
 
-# --- NoArgsIsHelpError ---
-
-def test_root_command_without_args_is_handled(cli_invoke):
-    result = cli_invoke([])
-
-    assert isinstance(result.exception, NoArgsIsHelpError)
-    assert ClickExceptionHandler.handle_error(result.exception) is True
-
+# --- UsageError — missing subcommand ---
 
 def test_group_with_no_subcommand_shows_missing_action_message(
     cli_invoke,
@@ -135,6 +128,21 @@ def test_unknown_subcommand_shows_help_hint(
     _, err = capsys.readouterr()
 
     assert f"Try '{command_path} {HELP_OPTION}' for more information." in err
+
+
+def test_root_command_with_unknown_subcommand_shows_unknown_action_message(
+    cli_invoke,
+    capsys
+):
+    bad_cmd = "badcmd"
+
+    result = cli_invoke([bad_cmd])
+
+    ClickExceptionHandler.handle_error(result.exception)
+    _, err = capsys.readouterr()
+    context = result.exception.ctx
+
+    assert f"Error: Unknown action '{bad_cmd}' for '{context.info_name}' command." in err
 
 
 # --- MissingParameter ---
@@ -280,10 +288,21 @@ def test_invalid_value_for_feature_setting_shows_help_hint(
     assert f"Try '{command_path} {HELP_OPTION}' for examples." in err
 
 
+# --- ClickException ---
+
+def test_click_exception_shows_error_message(capsys):
+    msg = "something went wrong"
+
+    assert ClickExceptionHandler.handle_error(click.ClickException(msg)) is True
+
+    _, err = capsys.readouterr()
+    assert f"Error: {msg}" in err
+
+
 # --- Unrecognised exceptions ---
 
-def test_unrecognised_click_exception_returns_false():
-    assert ClickExceptionHandler.handle_error(click.ClickException("unexpected")) is False
+def test_unrecognised_exception_returns_false():
+    assert ClickExceptionHandler.handle_error(Exception("unexpected")) is False
 
 
 def test_usage_error_without_context_shows_error_message(capsys):

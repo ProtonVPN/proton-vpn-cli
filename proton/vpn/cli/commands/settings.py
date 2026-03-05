@@ -116,13 +116,17 @@ For setting-specific help:
 
 @click.group(
     name=CONFIG_COMMAND,
+    no_args_is_help=False,
     epilog=_build_config_epilog()
 )
 def config():
     """Configure Proton VPN settings."""
 
 
-@config.group(name=SET_COMMAND)
+@config.group(
+    name=SET_COMMAND,
+    no_args_is_help=False
+)
 def set_group():
     """Change a specific setting."""
 

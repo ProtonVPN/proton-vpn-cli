@@ -53,6 +53,7 @@ def _print_usage_error(msg: str):
 
 @click.group(
     name=COUNTRIES_COMMAND,
+    no_args_is_help=False,
     epilog=f"""\b
 Output:
   Displays country names with their two-letter codes and server counts.
@@ -104,6 +105,7 @@ async def list_countries(ctx):
 
 @click.group(
     name=CITIES_COMMAND,
+    no_args_is_help=False,
     short_help="Discover cities where servers are available in a specific country.",
     epilog=f"""
 \b
