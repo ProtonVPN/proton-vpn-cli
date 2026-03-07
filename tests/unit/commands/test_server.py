@@ -25,7 +25,7 @@ from click.testing import CliRunner
 
 from proton.vpn.cli import app as app_cmd
 from proton.vpn.cli.commands.account import SIGNIN_COMMAND
-from proton.vpn.cli.commands.server import CONNECT_COMMAND
+from proton.vpn.cli.commands.server import CONNECT_COMMAND, TOGGLE_COMMAND
 from proton.vpn.cli.core.exceptions import \
     AuthenticationRequiredError, \
     CountryCodeError, \
@@ -384,3 +384,58 @@ def test_connect_fails_with_error_when_server_connection_fails(
     assert "Connection failed. "\
            "Try connecting to a different server or check your network settings."\
         in result.output
+
+
+def test_toggle_disconnects_when_connection_active(
+    runner: CliRunner,
+    test_context: click.Context,
+    controller_mock: AsyncMock
+):
+    controller_mock.is_connection_active.return_value = True
+
+    result = runner.invoke(
+        app_cmd,
+        [TOGGLE_COMMAND],
+        parent=test_context
+    )
+
+    assert result.exit_code == 0
+    controller_mock.disconnect.assert_awaited_once()
+    controller_mock.connect.assert_not_awaited()
+
+
+def test_toggle_connects_when_no_active_connection(
+    runner: CliRunner,
+    test_context: click.Context,
+    controller_mock: AsyncMock
+):
+    controller_mock.is_connection_active.return_value = False
+
+    server_mock = Mock()
+    server_mock.entry_country_name = "COUNTRY"
+    server_mock.city = "city"
+    server_mock.features = ServerFeatureEnum.SECURE_CORE
+
+    def find_logical_server(*_):
+        return server_mock
+
+    connection_state_mock = Mock()
+    connection_state_mock.context.connection.server_name = "server_id"
+    connection_state_mock.context.event.context.connection_details.server_ipv4 = "1.2.3.4"
+
+    def connect(*_):
+        return connection_state_mock
+
+    controller_mock.find_logical_server.side_effect = find_logical_server
+    controller_mock.connect.side_effect = connect
+
+    result = runner.invoke(
+        app_cmd,
+        [TOGGLE_COMMAND],
+        parent=test_context
+    )
+
+    assert result.exit_code == 0
+    controller_mock.disconnect.assert_not_awaited()
+    controller_mock.find_logical_server.assert_awaited_once()
+    controller_mock.connect.assert_awaited_once()

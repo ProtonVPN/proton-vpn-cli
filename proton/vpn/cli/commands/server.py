@@ -175,6 +175,28 @@ async def disconnect(ctx):
     await wait_for_current_tasks()
 
 
+@click.command()
+@click.pass_context
+@run_async
+async def toggle(ctx):
+    """Toggle Proton VPN connection"""
+    controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
+
+    if await controller.is_connection_active():
+        await controller.disconnect()
+        await wait_for_current_tasks()
+        return
+
+    server = await controller.find_logical_server()
+    if not server:
+        _print_usage_error("No servers found matching criteria. Try broadening your filters.")
+        return
+
+    await controller.connect(server)
+
+TOGGLE_COMMAND = toggle.name
+
+
 def _get_most_specific_server_location(server: LogicalServer) -> str:
     has_secure_core = ServerFeatureEnum.SECURE_CORE in server.features
     if has_secure_core and server.city:
