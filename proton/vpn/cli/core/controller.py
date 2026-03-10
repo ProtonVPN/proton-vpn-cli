@@ -22,7 +22,6 @@ import asyncio
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from importlib import metadata
-import logging
 import random
 from types import TracebackType
 from typing import Callable, List, Optional, Type, Union
@@ -136,12 +135,10 @@ class Controller:  # pylint: disable=too-many-public-methods
         click_ctx: ClickContext,
         api: ProtonVPNAPI = None
     ):
-        ProtonLogging.config(filename=LOGGING_FILENAME)
-        logger = logging.getLogger()  # grab the root logger
-        if params.verbose:
-            logger.setLevel(logging.INFO)
-        else:
-            logger.setLevel(logging.ERROR)
+        ProtonLogging.config(
+            filename=LOGGING_FILENAME,
+            log_to_console=params.verbose
+        )
 
         client_type_metadata = ClientTypeMetadata(
             type="cli"

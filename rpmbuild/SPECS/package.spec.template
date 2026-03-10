@@ -22,15 +22,17 @@ BuildRequires: python3-devel
 BuildRequires: python3-setuptools
 BuildRequires: python3-dbus-fast
 BuildRequires: python3-tabulate
-BuildRequires: python3-proton-vpn-api-core >= 4.14.3
+BuildRequires: python3-proton-vpn-api-core >= 4.17.1
 BuildRequires: python3-proton-keyring-linux >= 0.1.0
+BuildRequires: python3-click
 
-Requires: python3-proton-vpn-api-core >= 4.14.3
+Requires: python3-proton-vpn-api-core >= 4.17.1
 Requires: python3-proton-keyring-linux >= 0.1.0
 Requires: python3-packaging
 Requires: python3-dbus-fast
 Requires: proton-vpn-daemon
 Requires: python3-tabulate
+Requires: python3-click
 
 %{{?python_disable_dependency_generator}}
 

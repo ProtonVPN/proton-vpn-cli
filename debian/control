@@ -3,15 +3,16 @@ Section: python
 Priority: optional
 Maintainer: Proton Technologies AG <opensource@proton.me>
 Build-Depends: debhelper (>= 9), dh-python, python3-all,
-    python3-setuptools, python3-proton-vpn-api-core (>= 4.14.3),
+    python3-setuptools, python3-proton-vpn-api-core (>= 4.17.1),
     python3-proton-keyring-linux (>= 0.1.0), python3-packaging, python3-dbus-fast,
-    python3-tabulate
+    python3-tabulate, python3-click
 Standards-Version: 4.1.1
 X-Python3-Version: >= 3.2
 
 Package: proton-vpn-cli
 Architecture: all
-Depends: ${python3:Depends}, ${misc:Depends}, python3-proton-vpn-api-core (>= 4.14.3),
+Depends: ${python3:Depends}, ${misc:Depends}, python3-proton-vpn-api-core (>= 4.17.1),
     python3-proton-keyring-linux (>= 0.1.0), python3-packaging,
-    python3-dbus-fast, proton-vpn-daemon, python3-tabulate
+    python3-dbus-fast, proton-vpn-daemon, python3-tabulate,
+    python3-click
 Description: Python3 Proton VPN CLI
