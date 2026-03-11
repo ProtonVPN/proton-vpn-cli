@@ -25,7 +25,7 @@ from click.testing import CliRunner
 
 from proton.vpn.cli import app as app_cmd
 from proton.vpn.cli.commands.account import SIGNIN_COMMAND
-from proton.vpn.cli.commands.server import CONNECT_COMMAND
+from proton.vpn.cli.commands.server import CONNECT_COMMAND, STATUS_COMMAND
 from proton.vpn.cli.core.exceptions import \
     AuthenticationRequiredError, \
     CountryCodeError, \
@@ -435,3 +435,71 @@ def test_connect_fails_with_error_when_server_connection_fails(
     assert "Connection failed. "\
            "Try connecting to a different server or check your network settings."\
         in result.output
+
+
+def test_status_shows_disconnected_when_no_connection(
+    controller_mock: AsyncMock,
+    cli_invoke
+):
+    vpn_connector_mock = Mock()
+    vpn_connector_mock.current_state.context.connection = None
+    controller_mock.get_vpn_connector.return_value = vpn_connector_mock
+
+    result = cli_invoke([STATUS_COMMAND])
+
+    assert result.exit_code == 0
+    assert "Status: Disconnected" in result.output
+    assert "Status: Connected" not in result.output
+
+
+def test_status_shows_connected_with_server_details(
+    controller_mock: AsyncMock,
+    cli_invoke
+):
+    connection_mock = Mock()
+    connection_mock.server_name = "CH#1"
+    connection_mock.protocol = "wireguard"
+    vpn_connector_mock = Mock()
+    vpn_connector_mock.current_state.context.connection = connection_mock
+    controller_mock.get_vpn_connector.return_value = vpn_connector_mock
+
+    server_mock = Mock()
+    server_mock.load = 42
+    server_list_mock = Mock()
+    server_list_mock.get_by_name.return_value = server_mock
+    controller_mock.get_updated_server_list.return_value = server_list_mock
+
+    result = cli_invoke([STATUS_COMMAND])
+
+    assert result.exit_code == 0
+    assert "Status: Connected" in result.output
+    assert "Server: CH#1" in result.output
+    assert "Load: 42" in result.output
+    assert "Protocol: wireguard" in result.output
+
+
+@pytest.mark.parametrize("server_list_expired", [True, False])
+def test_status_notifies_of_serverlist_update_when_expired(
+    controller_mock: AsyncMock,
+    server_list_expired: bool,
+    cli_invoke
+):
+    controller_mock.is_serverlist_expired.return_value = server_list_expired
+
+    connection_mock = Mock()
+    connection_mock.server_name = "CH#1"
+    connection_mock.protocol = "wireguard"
+    vpn_connector_mock = Mock()
+    vpn_connector_mock.current_state.context.connection = connection_mock
+    controller_mock.get_vpn_connector.return_value = vpn_connector_mock
+
+    server_mock = Mock()
+    server_mock.load = 42
+    server_list_mock = Mock()
+    server_list_mock.get_by_name.return_value = server_mock
+    controller_mock.get_updated_server_list.return_value = server_list_mock
+
+    result = cli_invoke([STATUS_COMMAND])
+
+    assert ("Server list is outdated, updating... This may take a moment."
+            in result.output) == server_list_expired

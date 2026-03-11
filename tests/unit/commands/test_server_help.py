@@ -25,7 +25,8 @@ from proton.vpn.cli import app as app_cmd, HELP_OPTION
 from proton.vpn.cli.commands.server import \
     CONNECT_COMMAND, \
     DISCONNECT_COMMAND, \
-    SERVER_NAME_ARGUMENT
+    SERVER_NAME_ARGUMENT, \
+    STATUS_COMMAND
 
 
 def test_connect_help_explains_server_name_argument(
@@ -232,3 +233,13 @@ def test_disconnect_help_shows_examples_section(
 
     assert result.exit_code == 0
     assert "Examples:" in result.output
+
+
+def test_disconnect_help_shows_check_status_hint(
+    cli_invoke
+):
+    result = cli_invoke([DISCONNECT_COMMAND, HELP_OPTION])
+
+    assert result.exit_code == 0
+    assert "Check connection status:" in result.output
+    assert STATUS_COMMAND in result.output

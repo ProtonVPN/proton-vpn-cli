@@ -32,7 +32,7 @@ from proton.vpn.cli._cli_constants import \
     HELP_OPTION, \
     HELP_OPTION_ABBREVIATED
 from proton.vpn.cli.commands.account import signin, signout, info
-from proton.vpn.cli.commands.server import connect, disconnect
+from proton.vpn.cli.commands.server import connect, disconnect, status
 from proton.vpn.cli.commands.location_discovery import countries, cities
 from proton.vpn.cli.commands.settings import config, SETTINGS_LIST_COMMAND
 from proton.vpn.cli.core.controller import Controller, Params
@@ -147,6 +147,7 @@ app.add_command(info)
 # server related functionality
 app.add_command(connect)
 app.add_command(disconnect)
+app.add_command(status)
 
 # listing functionality
 app.add_command(countries)

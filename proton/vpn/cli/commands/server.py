@@ -1,4 +1,3 @@
-
 """
 Server/Connection related commands.
 
@@ -41,6 +40,7 @@ from proton.vpn.cli.commands.command_utils import \
 
 CONNECT_COMMAND = "connect"
 DISCONNECT_COMMAND = "disconnect"
+STATUS_COMMAND = "status"
 SERVER_NAME_ARGUMENT = "SERVER_NAME"
 
 
@@ -197,7 +197,10 @@ async def connect(
     name=DISCONNECT_COMMAND,
     epilog=f"""\b
 Examples:
-  {PROGRAM_NAME} {DISCONNECT_COMMAND}"""
+  {PROGRAM_NAME} {DISCONNECT_COMMAND}
+\b
+Check connection status:
+  {PROGRAM_NAME} {STATUS_COMMAND}"""
 )
 @click.pass_context
 @run_async
@@ -213,6 +216,46 @@ async def disconnect(ctx):
 
     # wait for post-disconnect notification killswitch implementation setting
     await wait_for_current_tasks()
+
+
+@click.command(
+    name=STATUS_COMMAND,
+    epilog=f"""\b
+            Examples:
+              {PROGRAM_NAME} {STATUS_COMMAND}"""
+)
+@click.pass_context
+@run_async
+async def status(ctx):
+    """\b
+    Show current VPN connection status.
+    \b
+    Displays:
+      - Connection status (Connected/Disconnected)
+      - Server name and location (if connected)
+      - Server load percentage (if connected)
+      - Connection protocol (if connected)
+    """
+    controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
+    connection = (await controller.get_vpn_connector()).current_state.context.connection
+    server_name = connection.server_name if connection else None
+    status_lines = []
+    if server_name:
+        await inform_that_expired_serverlist_will_be_updated_if_necessary(controller)
+        server_list = await controller.get_updated_server_list()
+        server = server_list.get_by_name(server_name)
+        status_lines.extend([
+            "Status: Connected",
+            f"Server: {server_name}",
+            f"Load: {server.load}",
+            f"Protocol: {connection.protocol}"
+        ])
+    else:
+        status_lines.extend([
+            "Status: Disconnected"
+        ])
+
+    click.echo("\n".join(status_lines))
 
 
 def _get_most_specific_server_location(server: LogicalServer) -> str:
