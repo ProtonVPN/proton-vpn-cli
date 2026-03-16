@@ -244,10 +244,11 @@ async def status(ctx):
         await inform_that_expired_serverlist_will_be_updated_if_necessary(controller)
         server_list = await controller.get_updated_server_list()
         server = server_list.get_by_name(server_name)
+        server_location = _get_most_specific_server_location(server)
         status_lines.extend([
             "Status: Connected",
-            f"Server: {server_name}",
-            f"Load: {server.load}",
+            f"Server: {server_name} in {server_location}",
+            f"Load: {server.load}%",
             f"Protocol: {connection.protocol}"
         ])
     else:

@@ -452,9 +452,19 @@ def test_status_shows_disconnected_when_no_connection(
     assert "Status: Connected" not in result.output
 
 
+@pytest.mark.parametrize(
+    "has_secure_core, has_city",
+    [
+        (True, True),
+        (False, True),
+        (False, False),
+    ]
+)
 def test_status_shows_connected_with_server_details(
     controller_mock: AsyncMock,
-    cli_invoke
+    cli_invoke,
+    has_secure_core: bool,
+    has_city: bool
 ):
     connection_mock = Mock()
     connection_mock.server_name = "CH#1"
@@ -465,6 +475,9 @@ def test_status_shows_connected_with_server_details(
 
     server_mock = Mock()
     server_mock.load = 42
+    server_mock.entry_country_name = "Switzerland"
+    server_mock.city = "Zurich" if has_city else None
+    server_mock.features = ServerFeatureEnum.SECURE_CORE if has_secure_core else []
     server_list_mock = Mock()
     server_list_mock.get_by_name.return_value = server_mock
     controller_mock.get_updated_server_list.return_value = server_list_mock
@@ -473,8 +486,15 @@ def test_status_shows_connected_with_server_details(
 
     assert result.exit_code == 0
     assert "Status: Connected" in result.output
-    assert "Server: CH#1" in result.output
-    assert "Load: 42" in result.output
+    assert "Server: CH#1 in " in result.output
+    if has_city:
+        if has_secure_core:
+            assert "in Zurich, via Switzerland" in result.output
+        else:
+            assert "in Zurich, Switzerland" in result.output
+    else:
+        assert "in Switzerland" in result.output
+    assert "Load: 42%" in result.output
     assert "Protocol: wireguard" in result.output
 
 
@@ -486,18 +506,7 @@ def test_status_notifies_of_serverlist_update_when_expired(
 ):
     controller_mock.is_serverlist_expired.return_value = server_list_expired
 
-    connection_mock = Mock()
-    connection_mock.server_name = "CH#1"
-    connection_mock.protocol = "wireguard"
-    vpn_connector_mock = Mock()
-    vpn_connector_mock.current_state.context.connection = connection_mock
-    controller_mock.get_vpn_connector.return_value = vpn_connector_mock
-
-    server_mock = Mock()
-    server_mock.load = 42
-    server_list_mock = Mock()
-    server_list_mock.get_by_name.return_value = server_mock
-    controller_mock.get_updated_server_list.return_value = server_list_mock
+    controller_mock.get_updated_server_list.return_value = Mock()
 
     result = cli_invoke([STATUS_COMMAND])
 
