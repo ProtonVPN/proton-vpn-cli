@@ -1,3 +1,12 @@
+version: 0.1.8rc8
+time: 2026/03/16 09:32
+author: Richard Paterson
+email: richard.paterson@proton.ch
+urgency: low
+stability: unstable
+description:
+- "fix: add API errors to custom error handling"
+---
 version: 0.1.8rc7
 time: 2026/03/11 09:57
 author: Richard Paterson

@@ -20,6 +20,7 @@ from typing import Optional
 from unittest.mock import AsyncMock
 import pytest
 
+from proton.session.exceptions import ProtonAPIError, ProtonAPINotReachable
 from proton.vpn.cli import main
 from proton.vpn.cli.commands.account import SIGNIN_COMMAND
 from proton.vpn.cli.commands.settings import CONFIG_COMMAND
@@ -28,23 +29,67 @@ from proton.vpn.cli.core.exceptions import SignoutRequiredError
 
 def _run_main(
     args: list[str],
-    controller_mock: Optional[AsyncMock] = None
-) -> int:
-    """Invoke main() with the given CLI args and return the SystemExit code."""
+    controller_mock: Optional[AsyncMock] = None,
+    capsys=None
+) -> tuple[int, str]:
+    """Invoke main() with the given CLI args and return (exit_code, stderr)."""
     with pytest.raises(SystemExit) as exc_info:
         main(cli_args=args, allow_concurrency=True, controller=controller_mock)
-    return exc_info.value.code
+    stderr = capsys.readouterr().err if capsys is not None else ""
+    return exc_info.value.code, stderr
 
 
 # --- UsageError ---
 
 
 def test_missing_subcommand_exits_with_code_2():
-    assert _run_main([CONFIG_COMMAND]) == 2
+    exit_code, _ = _run_main([CONFIG_COMMAND])
+    assert exit_code == 2
 
 
 def test_unknown_subcommand_exits_with_code_2():
-    assert _run_main([CONFIG_COMMAND, "badcmd"]) == 2
+    exit_code, _ = _run_main([CONFIG_COMMAND, "badcmd"])
+    assert exit_code == 2
+
+
+# --- ProtonAPIError ---
+
+
+def test_proton_api_error_is_displayed_and_exits_cleanly(
+    controller_mock: AsyncMock,
+    capsys
+):
+    error = ProtonAPIError(401, {}, {"Code": 8002, "Error": "Invalid credentials"})
+
+    def login(*_):
+        raise error
+
+    controller_mock.login.side_effect = login
+
+    exit_code, stderr = _run_main([SIGNIN_COMMAND, "account_name"], controller_mock, capsys)
+
+    assert exit_code == 1
+    assert f"Error: {error.message}" in stderr
+
+
+# --- ProtonAPINotReachable ---
+
+
+def test_proton_api_not_reachable_is_displayed_and_exits_cleanly(
+    controller_mock: AsyncMock,
+    capsys
+):
+    def login(*_):
+        raise ProtonAPINotReachable("Network error")
+
+    controller_mock.login.side_effect = login
+
+    exit_code, _ = _run_main([SIGNIN_COMMAND, "account_name"], controller_mock)
+
+    output = capsys.readouterr()
+    assert exit_code == 1
+    assert "Error: Network connectivity issues detected. "\
+           "Please check your internet connection and try again." in output.out
 
 
 # --- click exception ---
@@ -56,4 +101,5 @@ def test_signin_when_authenticated_exits_with_code_1(controller_mock: AsyncMock)
 
     controller_mock.login.side_effect = login
 
-    assert _run_main([SIGNIN_COMMAND, "account_name"], controller_mock) == 1
+    exit_code, _ = _run_main([SIGNIN_COMMAND, "account_name"], controller_mock)
+    assert exit_code == 1

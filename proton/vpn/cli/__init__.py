@@ -27,6 +27,7 @@ import click
 from dbus_fast.aio import MessageBus
 from dbus_fast import BusType, Message, MessageType
 
+from proton.session.exceptions import ProtonAPIError, ProtonAPINotReachable
 from proton.vpn.cli._cli_constants import \
     PROGRAM_NAME, \
     HELP_OPTION, \
@@ -178,6 +179,15 @@ def main(
             sys.exit(exc.exit_code)
         else:
             raise exc
+    except ProtonAPIError as exc:
+        click.echo(f"Error: {exc.message}", err=True)
+        sys.exit(1)
+    except ProtonAPINotReachable:
+        click.echo(
+            "Error: Network connectivity issues detected. "
+            "Please check your internet connection and try again."
+        )
+        sys.exit(1)
     except click.Abort:
-        click.echo("Abort!")
+        click.echo("Abort!", err=True)
         sys.exit(1)
