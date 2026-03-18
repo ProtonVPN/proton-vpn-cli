@@ -25,7 +25,7 @@ from click.testing import CliRunner
 
 from proton.vpn.cli import app as app_cmd
 from proton.vpn.cli.commands.account import SIGNIN_COMMAND
-from proton.vpn.cli.commands.server import CONNECT_COMMAND, STATUS_COMMAND
+from proton.vpn.cli.commands.server import CONNECT_COMMAND, STATUS_COMMAND, SERVERLIST_COMMAND
 from proton.vpn.cli.core.exceptions import \
     AuthenticationRequiredError, \
     CountryCodeError, \
@@ -512,3 +512,11 @@ def test_status_notifies_of_serverlist_update_when_expired(
 
     assert ("Server list is outdated, updating... This may take a moment."
             in result.output) == server_list_expired
+
+
+def test_servers_command_prints_redirection_successfully(cli_invoke):
+    result = cli_invoke([SERVERLIST_COMMAND])
+
+    assert result.exit_code == 0
+    assert "To view detailed server information including specific server IDs, " \
+           "visit:  https://account.proton.me/vpn/WireGuard" in result.output

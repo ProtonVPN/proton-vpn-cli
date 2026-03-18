@@ -41,6 +41,7 @@ from proton.vpn.cli.commands.command_utils import \
 CONNECT_COMMAND = "connect"
 DISCONNECT_COMMAND = "disconnect"
 STATUS_COMMAND = "status"
+SERVERLIST_COMMAND = "servers"
 SERVER_NAME_ARGUMENT = "SERVER_NAME"
 
 
@@ -257,6 +258,18 @@ async def status(ctx):
         ])
 
     click.echo("\n".join(status_lines))
+
+
+@click.command(
+    name=SERVERLIST_COMMAND,
+)
+@run_async
+async def servers():
+    """
+    View available servers. Prints the link to the full server list on protonvpn.com.
+    """
+    click.echo("To view detailed server information including specific server IDs, "
+               "visit:  https://account.proton.me/vpn/WireGuard")
 
 
 def _get_most_specific_server_location(server: LogicalServer) -> str:
