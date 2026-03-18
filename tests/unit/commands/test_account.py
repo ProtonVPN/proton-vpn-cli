@@ -23,7 +23,7 @@ import click
 from click.testing import CliRunner
 
 from proton.vpn.cli import app as app_cmd
-from proton.vpn.cli.commands.account import SIGNIN_COMMAND
+from proton.vpn.cli.commands.account import SIGNIN_COMMAND, SIGNOUT_COMMAND
 from proton.vpn.cli.core.exceptions import \
     Authentication2FAFailedError, \
     AuthenticationFailedError, \
@@ -91,3 +91,53 @@ def test_signin_fails_when_2FA_authentication_fails(
     assert result.exit_code == 1
     assert "2FA Authentication failed. Please try again."\
         in result.output
+
+
+def test_signin_echoes_account_name_on_success(
+    controller_mock: AsyncMock,
+    cli_invoke
+):
+    type(controller_mock).account_name = \
+        PropertyMock(return_value="testuser@proton.me")
+
+    result = cli_invoke([SIGNIN_COMMAND, "testuser@proton.me"])
+
+    assert result.exit_code == 0
+    assert "Successfully signed in as 'testuser@proton.me'" in result.output
+
+
+def test_signin_echoes_empty_name_when_account_info_missing_name(
+    controller_mock: AsyncMock,
+    cli_invoke
+):
+    type(controller_mock).account_name = \
+        PropertyMock(return_value=None)
+
+    result = cli_invoke([SIGNIN_COMMAND, "testuser@proton.me"])
+
+    assert result.exit_code == 0
+    assert "Successfully signed in as 'None'" in result.output
+
+
+def test_signout_echoes_signed_out_message_when_not_connected(
+    controller_mock: AsyncMock,
+    cli_invoke
+):
+    controller_mock.is_connection_active.return_value = False
+
+    result = cli_invoke([SIGNOUT_COMMAND])
+
+    assert result.exit_code == 0
+    assert "You have been successfully signed out." in result.output
+
+
+def test_signout_echoes_connection_terminated_message_when_connected(
+    controller_mock: AsyncMock,
+    cli_invoke
+):
+    controller_mock.is_connection_active.return_value = True
+
+    result = cli_invoke([SIGNOUT_COMMAND])
+
+    assert result.exit_code == 0
+    assert "VPN connection terminated and you've been successfully signed out." in result.output

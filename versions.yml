@@ -1,3 +1,12 @@
+version: 0.1.9rc1
+time: 2026/03/18 15:30
+author: Richard Paterson
+email: richard.paterson@proton.ch
+urgency: low
+stability: unstable
+description:
+- "feat: Add signin and signout completion messages"
+---
 version: 0.1.8
 time: 2026/03/18 14:02
 author: Richard Paterson

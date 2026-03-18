@@ -60,6 +60,7 @@ async def signin(ctx, username: str):
             getpass.getpass,
             lambda: getpass.getpass("2FA Token: ")
         )
+        click.echo(f"Successfully signed in as '{controller.account_name}'")
     except SignoutRequiredError as exc:
         raise click.ClickException(
             "Already signed in, please sign out first before changing accounts."
@@ -88,7 +89,13 @@ async def signin(ctx, username: str):
 async def signout(ctx):
     """Sign out from Proton VPN and clear local credentials."""
     controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
+    was_connected = await controller.is_connection_active()
     await controller.logout()
+    completion_message = "You have been successfully signed out."
+    if was_connected:
+        completion_message = "VPN connection terminated and you've been successfully signed out."
+
+    click.echo(completion_message)
 
 
 @click.command()
@@ -97,4 +104,4 @@ async def signout(ctx):
 async def info(ctx):
     """Display your Proton VPN account information."""
     controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
-    click.echo(f'{controller.account_info()}')
+    click.echo(f"Account: '{controller.account_name}'")

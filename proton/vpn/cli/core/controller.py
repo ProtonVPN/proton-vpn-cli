@@ -205,6 +205,13 @@ class Controller:  # pylint: disable=too-many-public-methods
         """
         return self.user_tier == 0
 
+    @property
+    def account_name(self) -> str:
+        """
+        Returns the Proton VPN account name if currently logged in.
+        """
+        return self._api.account_name
+
     async def get_settings(self) -> Settings:
         """Returns general settings."""
         return await self._api.load_settings()
@@ -507,14 +514,6 @@ class Controller:  # pylint: disable=too-many-public-methods
             await self.disconnect()
 
         await self._api.logout()
-
-    def account_info(self):
-        """
-        Provides information about the proton vpn accout currently logged in.
-        """
-        return dict(
-            name=self._api.account_name
-        )
 
     async def get_updated_server_list(self) -> ServerList:
         """Returns an always-up-to-date server list."""
