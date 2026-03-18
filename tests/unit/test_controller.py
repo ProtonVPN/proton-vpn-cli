@@ -181,7 +181,7 @@ async def test_connect_disconnects_when_connection_fails():
     def notify_event(subscriber):
         if not notify_event.error_sent:
             # first we let the controller know the connection failed
-            subscriber.status_update(states.Error)
+            subscriber.status_update(states.Error())
             notify_event.error_sent = True
         else:
             # then we let it know the "disconnection" has completed

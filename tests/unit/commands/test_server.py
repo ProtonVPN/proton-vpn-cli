@@ -30,7 +30,8 @@ from proton.vpn.cli.core.exceptions import \
     AuthenticationRequiredError, \
     CountryCodeError, \
     CountryNameError, \
-    RequiresHigherTierError
+    RequiresHigherTierError, \
+    VPNConnection2FARequiredError
 from proton.vpn.session.exceptions import ServerNotFoundError
 from proton.vpn.session.servers.types import ServerFeatureEnum
 
@@ -325,7 +326,7 @@ def test_connect_notifies_when_successfully_connected(
 
 
 @pytest.mark.parametrize(
-    "port_forwarding_enabled, server_supports_port_forwarding", 
+    "port_forwarding_enabled, server_supports_port_forwarding",
     [
         (True, True),
         (True, False),
@@ -412,6 +413,24 @@ def test_connect_warns_when_using_unsupported_protocol(
         assert warning in result.output
     else:
         assert warning not in result.output
+
+
+def test_connect_fails_with_2fa_error_message_when_vpn_2fa_is_required(
+    runner: CliRunner,
+    test_context: click.Context,
+    controller_mock: AsyncMock
+):
+    controller_mock.connect.side_effect = VPNConnection2FARequiredError()
+
+    result = runner.invoke(
+        app_cmd,
+        [CONNECT_COMMAND, "server_name"],
+        parent=test_context
+    )
+
+    assert result.exit_code == 1
+    assert "2FA Required: You are connected to the VPN, but all traffic is blocked." \
+        in result.output
 
 
 def test_connect_fails_with_error_when_server_connection_fails(

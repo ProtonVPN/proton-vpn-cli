@@ -28,7 +28,8 @@ from proton.vpn.cli.core.exceptions import \
     AuthenticationRequiredError, \
     CountryCodeError, \
     CountryNameError, \
-    RequiresHigherTierError
+    RequiresHigherTierError, \
+    VPNConnection2FARequiredError
 from proton.vpn.cli.core.run_async import run_async
 from proton.vpn.cli.core.controller import Controller, DEFAULT_CLI_NAME
 from proton.vpn.cli.core.wait_for_current_tasks import wait_for_current_tasks
@@ -169,6 +170,12 @@ async def connect(
                 requested_features,
                 random
             )
+    except VPNConnection2FARequiredError as exc:
+        raise click.ClickException(
+            "2FA Required: You are connected to the VPN, but all traffic is blocked.\n"
+            "You need to go to the authentication page provided by security and authenticate"
+            " with your hardware key.\nAfter that, the traffic will be enabled."
+        ) from exc
 
     if connection_state:
         # notify user of successful connection and server details
@@ -214,6 +221,7 @@ async def disconnect(ctx):
           - Restore original network configuration"""
     controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
     await controller.disconnect()
+    click.echo("Disconnected.")
 
     # wait for post-disconnect notification killswitch implementation setting
     await wait_for_current_tasks()

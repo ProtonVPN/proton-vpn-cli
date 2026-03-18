@@ -43,8 +43,9 @@ from proton.vpn.cli.core.exceptions import \
     InvalidDNS, \
     RequiresHigherTierError, \
     SignoutRequiredError, \
+    VPNConnection2FARequiredError, \
     VPNConnectionError
-from proton.vpn.connection import states
+from proton.vpn.connection import states, events
 from proton.vpn.connection.enum import ConnectionStateEnum
 from proton.vpn.core.api import ProtonVPNAPI
 from proton.vpn.core.connection import VPNStateSubscriber, VPNConnection, VPNConnector
@@ -95,14 +96,20 @@ async def _wait_for_event(  # pylint: disable=R0913
         triggers the given event.
         """
         event_hit_count: int
-        error_event_occurred: bool = False
+        connection_state: states.State
 
         def status_update(self, status):
             if status.type in event_types:
+                self.connection_state = status
                 event.set()
             elif status.type is ConnectionStateEnum.ERROR:
-                self.error_event_occurred = True
+                self.connection_state = status
                 event.set()
+
+        @property
+        def error_event_occurred(self):
+            """Returns whether a connection error event has occurred."""
+            return isinstance(self.connection_state, states.Error)
 
     subscriber = Subscriber()
     connector.register(subscriber)
@@ -121,6 +128,9 @@ async def _wait_for_event(  # pylint: disable=R0913
 
     connector.unregister(subscriber)
     if subscriber.error_event_occurred:
+        error_event = subscriber.connection_state.context.event
+        if isinstance(error_event, events.TwoFARequired):
+            raise VPNConnection2FARequiredError
         raise VPNConnectionError
 
 
@@ -462,6 +472,8 @@ class Controller:  # pylint: disable=too-many-public-methods
             async with _wait_for_event(connector,
                                        event_types=[ConnectionStateEnum.CONNECTED]):
                 await self._connect(server)
+        except VPNConnection2FARequiredError:
+            raise
         except (TimeoutError, VPNConnectionError):
             # If the connection fails, clean up NM setup
             await self.disconnect()

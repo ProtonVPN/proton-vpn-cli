@@ -26,6 +26,12 @@ class VPNConnectionError(Exception):
     """
 
 
+class VPNConnection2FARequiredError(VPNConnectionError):
+    """
+    Raised when VPN 2FA is required
+    """
+
+
 class CountryCodeError(Exception):
     """
     Error identifying a country by code
