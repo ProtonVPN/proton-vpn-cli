@@ -1,83 +1,16 @@
-version: 0.1.8rc9
-time: 2026/03/16 16:35
-author: Richard Paterson
-email: richard.paterson@proton.ch
-urgency: low
-stability: unstable
-description:
-- "fix: Status command improvements"
----
-version: 0.1.8rc8
-time: 2026/03/16 09:32
-author: Richard Paterson
-email: richard.paterson@proton.ch
-urgency: low
-stability: unstable
-description:
-- "fix: add API errors to custom error handling"
----
-version: 0.1.8rc7
-time: 2026/03/11 09:57
-author: Richard Paterson
-email: richard.paterson@proton.ch
-urgency: low
-stability: unstable
-description:
-- "feat: Add connection status command" 
----
-version: 0.1.8rc6
-time: 2026/03/09 13:56
-author: Richard Paterson
-email: richard.paterson@proton.ch
-urgency: low
-stability: unstable
-description:
-- "fix: Ensure only console logging matches verbosity"
----
-version: 0.1.8rc5
-time: 2026/03/03 15:29
-author: Richard Paterson
-email: richard.paterson@proton.ch
-urgency: low
-stability: unstable
-description:
-- "fix: Make click error handling compatible with older versions"
----
-version: 0.1.8rc4
-time: 2026/02/27 12:32
-author: Richard Paterson
-email: richard.paterson@proton.ch
-urgency: low
-stability: unstable
-description:
-- "feat: Improve error presentation"
----
-version: 0.1.8rc3
-time: 2026/02/25 14:59
-author: Richard Paterson
-email: richard.paterson@proton.ch
-urgency: low
-stability: unstable
-description:
-- "feat: Kill switch can only be modified when disconnected"
----
-version: 0.1.8rc2
-time: 2026/02/23 18:46
-author: Richard Paterson
-email: richard.paterson@proton.ch
-urgency: low
-stability: unstable
-description:
-- "feat: Improves command help and guidance"
----
-version: 0.1.8rc1
-time: 2026/02/17 15:50
+version: 0.1.8
+time: 2026/03/18 14:02
 author: Richard Paterson
 email: richard.paterson@proton.ch
 urgency: low
 stability: unstable
 description:
 - "feat: Add redirection to port-forwarding manual setup link where relevant"
+- "feat: Improves command help and guidance"
+- "feat: Kill switch can only be modified when disconnected"
+- "feat: Improve error presentation"
+- "fix: Ensure only console logging matches verbosity"
+- "feat: Add connection status command" 
 ---
 version: 0.1.7
 time: 2026/02/17 13:56
