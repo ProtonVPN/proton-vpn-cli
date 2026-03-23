@@ -132,37 +132,6 @@ async def test_find_logical_server_fails_when_requesting_random_server_as_free_u
 
 
 @pytest.mark.asyncio
-async def test_connect_disconnects_first_when_already_connected():
-    api_mock = AsyncMock(spec=ProtonVPNAPI)
-    api_mock.refresher = AsyncMock(spec=VPNDataRefresher)
-    params_mock = Mock(spec=Params)
-    click_ctx_mock = Mock(spec=ClickContext)
-    vpn_connector_mock = Mock(spec=VPNConnector)
-    server = Mock(spec=LogicalServer)
-
-    # mock active connection
-    vpn_connector_mock.is_connection_active = True
-    api_mock.get_vpn_connector.return_value = vpn_connector_mock
-
-    # grab subscribers to connection events and
-    # send them artificial events to avoid disconnect and connect blocking
-    def notify_event(subscriber):
-        if notify_event.disconnect_subscribe:
-            # first we let the controller know we "disconnected"
-            subscriber.status_update(states.Disconnected)
-            notify_event.disconnect_subscribe = False
-        else:
-            # then we let it know the "connection" has completed
-            subscriber.status_update(states.Connected)
-    notify_event.disconnect_subscribe = True
-    vpn_connector_mock.register.side_effect = notify_event
-
-    controller = Controller(params_mock, click_ctx_mock, api_mock)
-    await controller.connect(server)
-    vpn_connector_mock.disconnect.assert_called_once()
-
-
-@pytest.mark.asyncio
 async def test_connect_disconnects_when_connection_fails():
     api_mock = AsyncMock(spec=ProtonVPNAPI)
     api_mock.refresher = AsyncMock(spec=VPNDataRefresher)

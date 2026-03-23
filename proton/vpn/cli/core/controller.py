@@ -82,13 +82,15 @@ class Params:
 async def _wait_for_event(  # pylint: disable=R0913
     connector: VPNConnector,
     event_types: Optional[List[ConnectionStateEnum]] = None,
-    timeout=10
+    timeout: int = 10,
+    wait_for_new_connection: Optional[bool] = False
 ):
     if not event_types:
         yield
         return
 
     event = asyncio.Event()
+    current_connection = connector.current_connection
 
     class Subscriber(VPNStateSubscriber):  # pylint: disable=R0903
         """
@@ -98,8 +100,12 @@ async def _wait_for_event(  # pylint: disable=R0913
         event_hit_count: int
         connection_state: states.State
 
-        def status_update(self, status):
+        def status_update(self, status: states.State):
             if status.type in event_types:
+                if wait_for_new_connection:
+                    if current_connection is status.context.connection:
+                        return
+
                 self.connection_state = status
                 event.set()
             elif status.type is ConnectionStateEnum.ERROR:
@@ -461,16 +467,12 @@ class Controller:  # pylint: disable=too-many-public-methods
 
         connector = await self.get_vpn_connector()
 
-        if connector.is_connection_active:
-            # an asynchronous connect event from local agent
-            # makes it difficult to time a state machine driven disconnect and connect
-            # ... So we need to separate disconnection from connection explicitly
-            # to ensure we correctly time switching between servers
-            await self.disconnect()
-
         try:
-            async with _wait_for_event(connector,
-                                       event_types=[ConnectionStateEnum.CONNECTED]):
+            async with _wait_for_event(
+                connector,
+                event_types=[ConnectionStateEnum.CONNECTED],
+                wait_for_new_connection=True
+            ):
                 await self._connect(server)
         except VPNConnection2FARequiredError:
             raise
