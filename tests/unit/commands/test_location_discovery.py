@@ -220,8 +220,8 @@ def test_cities_listing_shows_all_available_features_for_city(
     def get_all_countries(*_):
         return [
             Country(
-                "uk",
-                [
+                code="uk",
+                servers=[
                     LogicalServer({
                         "Features": ServerFeatureEnum.P2P,
                         "City": "London",
@@ -240,7 +240,8 @@ def test_cities_listing_shows_all_available_features_for_city(
                         "Tier": "1",
                         "Enabled": "1"
                     })
-                ]
+                ],
+                group_by_city=True
             )
         ]
 
@@ -259,7 +260,7 @@ def test_cities_listing_shows_all_available_features_for_city(
     assert result.exit_code == 0
 
     only_country = get_all_countries()[0]
-    only_city = only_country.cities[0]
+    only_city = only_country.locations[0]
     for feature in only_city.features:
         if feature in FEATURES_TO_DISPLAY:
             assert FEATURES_TO_DISPLAY[feature] in result.output
@@ -275,8 +276,8 @@ def test_cities_listing_shows_all_available_cities(
     def get_all_countries(*_):
         return [
             Country(
-                "uk",
-                [
+                code="uk",
+                servers=[
                     LogicalServer({
                         "Features": ServerFeatureEnum.P2P,
                         "City": "London",
@@ -295,7 +296,8 @@ def test_cities_listing_shows_all_available_cities(
                         "Tier": "1",
                         "Enabled": "1"
                     })
-                ]
+                ],
+                group_by_city=True
             )
         ]
 
@@ -314,9 +316,9 @@ def test_cities_listing_shows_all_available_cities(
     assert result.exit_code == 0
 
     only_country = get_all_countries()[0]
-    for city in only_country.cities:
+    for city in only_country.locations:
         assert city.name in result.output
 
     result_without_header = result.output.split("-\n", 1)[1]
     number_of_city_rows = result_without_header.count("\n") - 1
-    assert number_of_city_rows == len(only_country.cities)
+    assert number_of_city_rows == len(only_country.locations)

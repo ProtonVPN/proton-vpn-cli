@@ -178,7 +178,7 @@ async def list_cities_in_country(ctx, country: str):
     requested_country = requested_country.pop()
     table_data = []
 
-    for city in requested_country.cities:
+    for city in requested_country.locations:
         only_displayable_features = [
             feature_display_name
             for feature, feature_display_name in FEATURES_TO_DISPLAY.items()

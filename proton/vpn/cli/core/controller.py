@@ -445,7 +445,7 @@ class Controller:  # pylint: disable=too-many-public-methods
             raise AuthenticationRequiredError
 
         server_list = await self.get_updated_server_list()
-        return server_list.group_by_country()
+        return server_list.group_by_country(group_by_city=True)
 
     async def connect(
         self,
