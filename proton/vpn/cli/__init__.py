@@ -31,7 +31,8 @@ from proton.session.exceptions import ProtonAPIError, ProtonAPINotReachable
 from proton.vpn.cli._cli_constants import \
     PROGRAM_NAME, \
     HELP_OPTION, \
-    HELP_OPTION_ABBREVIATED
+    HELP_OPTION_ABBREVIATED, \
+    logs_filepath
 from proton.vpn.cli.commands.account import signin, signout, info
 from proton.vpn.cli.commands.server import connect, disconnect, status, servers
 from proton.vpn.cli.commands.location_discovery import countries, cities
@@ -175,15 +176,10 @@ def main(
             standalone_mode=False,
             args=cli_args
         )
-    except click.exceptions.ClickException as exc:
-        if ClickExceptionHandler.handle_error(exc):
-            sys.exit(exc.exit_code)
-        else:
-            raise exc
     except ProtonAPIError as exc:
         click.echo(f"Error: {exc.message}", err=True)
         sys.exit(1)
-    except ProtonAPINotReachable:
+    except (TimeoutError, ProtonAPINotReachable):
         click.echo(
             "Error: Network connectivity issues detected. "
             "Please check your internet connection and try again."
@@ -192,3 +188,17 @@ def main(
     except click.Abort:
         click.echo("Abort!", err=True)
         sys.exit(1)
+    except Exception as exc:
+        if isinstance(exc, click.exceptions.ClickException):
+            if ClickExceptionHandler.handle_error(exc):
+                sys.exit(exc.exit_code)
+
+        logging_filepath = logs_filepath()
+        click.echo(
+            "An unexpected error occurred. Please try again.\n"
+            "If the error persists please contact customer support with a link to the log file"
+            f" ({logging_filepath}):\n"
+            "https://protonvpn.com/support/contact?"
+            "subject=%5BCLI%5D&os=Linux&platform=VPN%20for%20Linux"
+        )
+        raise  # make sure it gets reported to sentry

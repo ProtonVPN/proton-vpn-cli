@@ -1,3 +1,12 @@
+version: 0.1.10rc2
+time: 2026/03/26 14:47
+author: Richard Paterson
+email: richard.paterson@proton.ch
+urgency: low
+stability: unstable
+description:
+- "fix: Handle connection event timeouts"
+---
 version: 0.1.10rc1
 time: 2026/03/25 15:17
 author: Pep Llaneras

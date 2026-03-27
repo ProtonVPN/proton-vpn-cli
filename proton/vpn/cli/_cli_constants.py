@@ -21,7 +21,18 @@ along with ProtonVPN.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import sys
 
+from proton.utils.environment import VPNExecutionEnvironment
+
 PROGRAM_NAME = os.path.basename(sys.argv[0]) if sys.argv else "protonvpn"
+
+LOGGING_FILENAME = "vpn-cli"
+LOGGING_DIR_PATH = os.path.join(VPNExecutionEnvironment().path_cache, "logs")
 
 HELP_OPTION = "--help"
 HELP_OPTION_ABBREVIATED = "-h"
+
+
+def logs_filepath() -> str:
+    """Returns path to CLI logging file"""
+    filename = LOGGING_FILENAME + ".log"
+    return os.path.join(LOGGING_DIR_PATH, filename)

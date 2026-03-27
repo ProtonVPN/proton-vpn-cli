@@ -22,6 +22,7 @@ import pytest
 
 from proton.session.exceptions import ProtonAPIError, ProtonAPINotReachable
 from proton.vpn.cli import main
+from proton.vpn.cli._cli_constants import logs_filepath
 from proton.vpn.cli.commands.account import SIGNIN_COMMAND
 from proton.vpn.cli.commands.settings import CONFIG_COMMAND
 from proton.vpn.cli.core.exceptions import SignoutRequiredError
@@ -90,6 +91,51 @@ def test_proton_api_not_reachable_is_displayed_and_exits_cleanly(
     assert exit_code == 1
     assert "Error: Network connectivity issues detected. "\
            "Please check your internet connection and try again." in output.out
+
+
+# --- TimeoutError ---
+
+
+def test_timeout_error_is_displayed_and_exits_cleanly(
+    controller_mock: AsyncMock,
+    capsys
+):
+    def login(*_):
+        raise TimeoutError("Connection timed out")
+
+    controller_mock.login.side_effect = login
+
+    exit_code, _ = _run_main([SIGNIN_COMMAND, "account_name"], controller_mock)
+
+    output = capsys.readouterr()
+    assert exit_code == 1
+    assert "Error: Network connectivity issues detected. "\
+           "Please check your internet connection and try again." in output.out
+
+
+# --- unexpected Exception ---
+
+
+def test_unexpected_exception_shows_error_message_and_reraises(
+    controller_mock: AsyncMock,
+    capsys
+):
+    def login(*_):
+        raise RuntimeError("Something went wrong")
+
+    controller_mock.login.side_effect = login
+
+    with pytest.raises(RuntimeError):
+        main(cli_args=[SIGNIN_COMMAND, "account_name"], allow_concurrency=True, controller=controller_mock)
+
+    output = capsys.readouterr()
+    assert output.out == (
+        "An unexpected error occurred. Please try again.\n"
+        "If the error persists please contact customer support with a link to the log file"
+        f" ({logs_filepath()}):\n"
+        "https://protonvpn.com/support/contact?"
+        "subject=%5BCLI%5D&os=Linux&platform=VPN%20for%20Linux\n"
+    )
 
 
 # --- click exception ---

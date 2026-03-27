@@ -59,11 +59,13 @@ async def test_exception_handling_reports_exceptions_when_relevant(exception_typ
     reporter = Mock()
     ExceptionHandler.enable(exception_reporter=reporter)
 
-    sys.excepthook(
-        exception_type,
-        exception_type(),
-        None
-    )
+    with pytest.raises(SystemExit):
+        sys.excepthook(
+            exception_type,
+            exception_type(),
+            None
+        )
+
     if is_handled:
         reporter.report_error.assert_called_once()
     else:

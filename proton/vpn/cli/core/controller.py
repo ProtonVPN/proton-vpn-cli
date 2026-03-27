@@ -33,6 +33,7 @@ import sentry_sdk
 from proton.session.exceptions import ProtonAPIAuthenticationNeeded
 from proton.vpn.core.settings.custom_dns import CustomDNSEntry, CustomDNS
 from proton.vpn import logging as ProtonLogging
+from proton.vpn.cli._cli_constants import LOGGING_FILENAME, LOGGING_DIR_PATH
 from proton.vpn.cli.core.exception_handler import ExceptionHandler
 from proton.vpn.cli.core.exceptions import \
     Authentication2FAFailedError, \
@@ -58,7 +59,6 @@ from proton.vpn.session.servers.country_codes import \
     get_country_code_for_name
 from proton.vpn.session.servers.types import LogicalServer, ServerFeatureEnum
 
-LOGGING_FILENAME = "vpn-cli"
 DEFAULT_CLI_NAME = "protonvpn"
 
 
@@ -153,6 +153,7 @@ class Controller:  # pylint: disable=too-many-public-methods
     ):
         ProtonLogging.config(
             filename=LOGGING_FILENAME,
+            logdirpath=LOGGING_DIR_PATH,
             log_to_console=params.verbose
         )
 
