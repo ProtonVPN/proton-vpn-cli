@@ -31,8 +31,7 @@ from proton.session.exceptions import ProtonAPIError, ProtonAPINotReachable
 from proton.vpn.cli._cli_constants import \
     PROGRAM_NAME, \
     HELP_OPTION, \
-    HELP_OPTION_ABBREVIATED, \
-    logs_filepath
+    HELP_OPTION_ABBREVIATED
 from proton.vpn.cli.commands.account import signin, signout, info
 from proton.vpn.cli.commands.server import connect, disconnect, status, servers
 from proton.vpn.cli.commands.location_discovery import countries, cities
@@ -193,11 +192,9 @@ def main(
             if ClickExceptionHandler.handle_error(exc):
                 sys.exit(exc.exit_code)
 
-        logging_filepath = logs_filepath()
         click.echo(
             "An unexpected error occurred. Please try again.\n"
-            "If the error persists please contact customer support with a link to the log file"
-            f" ({logging_filepath}):\n"
+            "If the error persists please contact customer support: "
             "https://protonvpn.com/support/contact?"
             "subject=%5BCLI%5D&os=Linux&platform=VPN%20for%20Linux"
         )

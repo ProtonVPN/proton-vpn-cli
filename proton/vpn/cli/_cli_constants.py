@@ -30,9 +30,3 @@ LOGGING_DIR_PATH = os.path.join(VPNExecutionEnvironment().path_cache, "logs")
 
 HELP_OPTION = "--help"
 HELP_OPTION_ABBREVIATED = "-h"
-
-
-def logs_filepath() -> str:
-    """Returns path to CLI logging file"""
-    filename = LOGGING_FILENAME + ".log"
-    return os.path.join(LOGGING_DIR_PATH, filename)

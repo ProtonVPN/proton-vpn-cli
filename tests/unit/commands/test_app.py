@@ -22,7 +22,6 @@ import pytest
 
 from proton.session.exceptions import ProtonAPIError, ProtonAPINotReachable
 from proton.vpn.cli import main
-from proton.vpn.cli._cli_constants import logs_filepath
 from proton.vpn.cli.commands.account import SIGNIN_COMMAND
 from proton.vpn.cli.commands.settings import CONFIG_COMMAND
 from proton.vpn.cli.core.exceptions import SignoutRequiredError
@@ -131,8 +130,7 @@ def test_unexpected_exception_shows_error_message_and_reraises(
     output = capsys.readouterr()
     assert output.out == (
         "An unexpected error occurred. Please try again.\n"
-        "If the error persists please contact customer support with a link to the log file"
-        f" ({logs_filepath()}):\n"
+        "If the error persists please contact customer support: "
         "https://protonvpn.com/support/contact?"
         "subject=%5BCLI%5D&os=Linux&platform=VPN%20for%20Linux\n"
     )
