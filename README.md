@@ -1,6 +1,6 @@
 # Proton VPN CLI
 
-Copyright (c) 2025 Proton AG
+Copyright (c) 2026 Proton AG
 
 This repository holds the Proton VPN CLI.
 For licensing information see [COPYING](COPYING.md) and [LICENSE](LICENSE).
@@ -8,24 +8,25 @@ For contribution policy see [CONTRIBUTING](CONTRIBUTING.md).
 
 ## Description
 
-### Early access release
-
-The official [Proton VPN](https://protonvpn.com) CLI is here. This early access release delivers core VPN functionality now, and we'll build out additional features based on your feedback and priorities.
+The official Proton VPN CLI for Linux.
 
 Current functionality:
-- Connect and disconnect from VPN servers
+- Connect to 19,000+ servers in 139 countries
 - Select servers by country, city, or server ID
+- Secure Core, P2P, and Tor server support
+- Kill switch, NetShield ad-blocker, port forwarding, Custom DNS, IPv6, VPN Accelerator, NAT type
 - WireGuard protocol support
 
-Current limitations:
-- No advanced features (NetShield, kill switch, split tunneling, port forwarding)
-- Cannot run alongside the Proton VPN GUI app
-- No server list command (use connection options instead)
+Some features and server locations require a paid Proton VPN plan.
 
-We're actively developing additional features. Report issues and request features through https://protonvpn.com/support-form
+Current limitations:
+- Cannot run alongside the Proton VPN GUI app
+- Headless setups are not currently supported 
+- Split tunneling is not yet available
+
+Report issues and request features through [Proton VPN support](https://protonvpn.com/support/contact?subject=%5BCLI%5D&os=Linux&platform=VPN%20for%20Linux).
 
 Have fun on your terminal.
-
 
 ### Cloning
 

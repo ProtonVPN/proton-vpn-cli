@@ -1,31 +1,14 @@
-version: 0.1.10rc3
-time: 2026/03/30 08:12
+version: 1.0.0
+time: 2026/03/30 12:20
 author: Richard Paterson
 email: richard.paterson@proton.ch
 urgency: low
 stability: unstable
 description:
-- "fix: Improve general exception error message"
----
-version: 0.1.10rc2
-time: 2026/03/26 14:47
-author: Richard Paterson
-email: richard.paterson@proton.ch
-urgency: low
-stability: unstable
-description:
-- "fix: Handle connection event timeouts"
----
-version: 0.1.10rc1
-time: 2026/03/25 15:17
-author: Pep Llaneras
-email: josep.llaneras@proton.ch
-urgency: low
-stability: unstable
-description:
-- "fix: Support VPN 2FA"
-- "fix: Reconnects without disconnecting"
+- "fix: Support VPN 2FA (Pep Llaneras)"
+- "fix: Reconnection no longer requires manual disconnect step (Pep Llaneras)"
 - "fix: Change method for obtaining country servers grouped by city"
+- "fix: Add general exception message"
 ---
 version: 0.1.9
 time: 2026/03/23 12:35
