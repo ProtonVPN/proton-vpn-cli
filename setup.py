@@ -48,6 +48,11 @@ setup(
         "Programming Language :: Python",
         "Topic :: Security",
     ],
+    data_files=[
+        ("share/bash-completion/completions", ["completions/protonvpn"]),
+        ("share/zsh/site-functions", ["completions/_protonvpn"]),
+        ("share/fish/vendor_completions.d", ["completions/protonvpn.fish"]),
+    ],
     entry_points={
         "console_scripts": [
             ['protonvpn=proton.vpn.cli:main'],
