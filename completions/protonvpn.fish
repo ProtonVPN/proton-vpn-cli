@@ -82,6 +82,13 @@ complete -c protonvpn -n '__protonvpn_using_command_prefix connect' -l p2p -d 'P
 complete -c protonvpn -n '__protonvpn_using_command_prefix connect' -l securecore -d 'Secure Core server'
 complete -c protonvpn -n '__protonvpn_using_command_prefix connect' -l tor -d 'Tor over VPN server'
 complete -c protonvpn -n '__protonvpn_using_command_prefix connect' -l random -d 'Random server'
+# Expose connect options as arguments so they appear without typing -
+complete -c protonvpn -n '__protonvpn_using_command_prefix connect; and not string match -q -- "-*" (commandline -ct)' -f -a '--country' -d 'Connect to country (code or name)'
+complete -c protonvpn -n '__protonvpn_using_command_prefix connect; and not string match -q -- "-*" (commandline -ct)' -f -a '--city' -d 'Connect to city'
+complete -c protonvpn -n '__protonvpn_using_command_prefix connect; and not string match -q -- "-*" (commandline -ct)' -f -a '--p2p' -d 'P2P-optimized server'
+complete -c protonvpn -n '__protonvpn_using_command_prefix connect; and not string match -q -- "-*" (commandline -ct)' -f -a '-sc --securecore' -d 'Secure Core server'
+complete -c protonvpn -n '__protonvpn_using_command_prefix connect; and not string match -q -- "-*" (commandline -ct)' -f -a '--tor' -d 'Tor over VPN server'
+complete -c protonvpn -n '__protonvpn_using_command_prefix connect; and not string match -q -- "-*" (commandline -ct)' -f -a '--random' -d 'Random server'
 
 # --- countries subcommands ---
 complete -c protonvpn -n '__protonvpn_using_command countries' -a list -d 'List all countries'

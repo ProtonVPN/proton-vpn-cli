@@ -56,12 +56,11 @@ _protonvpn() {
             fi
             ;;
         connect)
-            if [[ "$cur" == -* ]]; then
-                COMPREPLY=($(compgen -W "--country --city --p2p -sc --securecore --tor --random -h --help" -- "$cur"))
-            elif [[ "$prev" == "--country" || "$prev" == "--city" ]]; then
+            if [[ "$prev" == "--country" || "$prev" == "--city" ]]; then
                 # These take a value argument; no static completions
                 return
             fi
+            COMPREPLY=($(compgen -W "--country --city --p2p -sc --securecore --tor --random -h --help" -- "$cur"))
             ;;
         countries)
             if [[ -z "$subcmd" ]]; then
