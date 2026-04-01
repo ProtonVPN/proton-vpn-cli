@@ -28,6 +28,8 @@ Report issues and request features through [Proton VPN support](https://protonvp
 
 Have fun on your terminal.
 
+<img src="assets/protonvpn-demo.svg" width="590">
+
 ### Cloning
 
 Once you've cloned this repo, run:
