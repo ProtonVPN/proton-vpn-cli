@@ -40,7 +40,7 @@ to clone the necessary submodule.
 
 ### Installation
 
-You can find the latest beta release and installation instructions on our [Proton VPN official website](https://protonvpn.com/support/linux-cli).
+You can find the latest release and installation instructions on our [Proton VPN official website](https://protonvpn.com/support/linux-cli).
 
 ### Dependencies
 
