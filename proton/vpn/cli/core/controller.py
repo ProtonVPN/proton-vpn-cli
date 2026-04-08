@@ -49,7 +49,7 @@ from proton.vpn.cli.core.exceptions import \
 from proton.vpn.connection import states, events
 from proton.vpn.connection.enum import ConnectionStateEnum
 from proton.vpn.core.api import ProtonVPNAPI
-from proton.vpn.core.connection import VPNStateSubscriber, VPNConnection, VPNConnector
+from proton.vpn.core.vpnconnector import VPNStateSubscriber, VPNConnection, VPNConnector
 from proton.vpn.core.session_holder import ClientTypeMetadata
 from proton.vpn.core.settings import Settings
 from proton.vpn.session import ServerList

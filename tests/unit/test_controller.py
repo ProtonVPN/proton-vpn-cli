@@ -27,7 +27,7 @@ from proton.vpn.cli.core.exceptions import \
     RequiresHigherTierError
 from proton.vpn.connection import states
 from proton.vpn.core.api import ProtonVPNAPI, VPNDataRefresher, Settings
-from proton.vpn.core.connection import VPNConnector
+from proton.vpn.core.vpnconnector import VPNConnector
 from proton.vpn.session.servers.types import LogicalServer, ServerFeatureEnum
 
 

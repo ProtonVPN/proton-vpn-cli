@@ -3,7 +3,7 @@ Section: python
 Priority: optional
 Maintainer: Proton Technologies AG <opensource@proton.me>
 Build-Depends: debhelper (>= 9), dh-python, python3-all,
-    python3-setuptools, python3-proton-vpn-api-core (>= 4.19.1),
+    python3-setuptools, python3-proton-vpn-api-core (>= 5.0.0),
     python3-proton-keyring-linux (>= 0.1.0), python3-packaging, python3-dbus-fast,
     python3-tabulate, python3-click
 Standards-Version: 4.1.1
