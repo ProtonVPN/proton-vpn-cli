@@ -154,7 +154,6 @@ class Controller:  # pylint: disable=too-many-public-methods
         ProtonLogging.config(
             filename=LOGGING_FILENAME,
             logdirpath=LOGGING_DIR_PATH,
-            log_to_console=params.verbose
         )
 
         client_type_metadata = ClientTypeMetadata(
@@ -446,7 +445,7 @@ class Controller:  # pylint: disable=too-many-public-methods
             raise AuthenticationRequiredError
 
         server_list = await self.get_updated_server_list()
-        return server_list.group_by_country(group_by_city=True)
+        return server_list.group_by_country(cities=True)
 
     async def connect(
         self,
