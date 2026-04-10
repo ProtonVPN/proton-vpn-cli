@@ -479,7 +479,10 @@ class Controller:  # pylint: disable=too-many-public-methods
             raise
         except (TimeoutError, VPNConnectionError):
             # If the connection fails, clean up NM setup
-            await self.disconnect()
+            try:
+                await self.disconnect()
+            except TimeoutError:
+                pass  # kill switch cleanup timed out, nothing more we can do
 
         connection_state = None
         if isinstance(connector.current_state, states.Connected):
