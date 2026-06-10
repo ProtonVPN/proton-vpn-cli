@@ -19,7 +19,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with ProtonVPN.  If not, see <https://www.gnu.org/licenses/>.
 """
+import atexit
 from importlib.metadata import version, PackageNotFoundError
+import os
+import signal
 import sys
 from typing import List, Optional
 
@@ -45,6 +48,26 @@ try:
     __version__ = version("proton-vpn-cli")
 except PackageNotFoundError:
     __version__ = "development"
+
+
+# Installed during interpreter shutdown to prevent core dumps from
+# Rust local_agent.abi3.so background threads that may call Python
+# callbacks during Py_FinalizeEx. Logs to stderr instead of dumping
+# core so the occurrence is still visible, but exits cleanly.
+def _handle_shutdown_abort(_signum, _frame):
+    sys.stderr.write(
+        "Warning: suppressed a SIGABRT during interpreter shutdown "
+        "(likely from local_agent.abi3.so background threads).\n"
+    )
+    os._exit(1)
+
+
+def _install_abort_guard():
+    signal.signal(signal.SIGABRT, _handle_shutdown_abort)
+
+
+atexit.register(_install_abort_guard)
+
 
 PROTON_VPN_LOGO = r"""
   ____            _               __     ______  _   _
