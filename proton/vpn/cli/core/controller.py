@@ -285,7 +285,7 @@ class Controller:  # pylint: disable=too-many-public-methods
         connector = await self.get_vpn_connector()
         is_connected = connector.is_connected
         free_user_requesting_free_features =\
-            self.user_on_free_tier and settings.features.are_free_tier_defaults()
+            self.user_on_free_tier and settings.features.is_default(self._api.user_tier)
         if not free_user_requesting_free_features and is_connected:
             # paying user requesting feature changes with live connection
             # wait for LA connection event confirming feature request complete
