@@ -283,16 +283,11 @@ class Controller:  # pylint: disable=too-many-public-methods
     async def save_settings(self, settings: Settings):
         """Saves general settings."""
         connector = await self.get_vpn_connector()
-        is_connected = connector.is_connected
-        free_user_requesting_free_features =\
-            self.user_on_free_tier and settings.features.are_free_tier_defaults()
-        if not free_user_requesting_free_features and is_connected:
-            # paying user requesting feature changes with live connection
-            # wait for LA connection event confirming feature request complete
-            async with _wait_for_event(connector,
-                                       event_types=[ConnectionStateEnum.CONNECTED]):
-                await self._api.save_settings(settings)
-        else:
+        # Paid users always push feature changes to a live connection; wait for
+        # the LA CONNECTED event confirming completion. Free users never do.
+        wait_for_feature_apply = not self.user_on_free_tier and connector.is_connected
+        event_types = [ConnectionStateEnum.CONNECTED] if wait_for_feature_apply else None
+        async with _wait_for_event(connector, event_types=event_types):
             await self._api.save_settings(settings)
 
     def _set_settings_by_path(
