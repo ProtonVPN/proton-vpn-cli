@@ -1,11 +1,10 @@
-version: 1.0.2rc1
+version: 1.0.2
 time: 2026/07/06 15:23
-author: Axel Langenskiold
-email: axel.langenskiold@proton.ch
+author: Elena Svilpe
+email: elena.svilpe@proton.ch
 urgency: low
-stability: unstable
 description:
-- "chore: adopt api-core Features.is_default rename"
+- "chore: adopt api-core Features.is_default rename (Axel Langenskiold)"
 ---
 version: 1.0.1
 time: 2026/04/08 13:58
