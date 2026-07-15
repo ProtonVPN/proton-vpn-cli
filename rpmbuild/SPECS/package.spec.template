@@ -22,11 +22,11 @@ BuildRequires: python3-devel
 BuildRequires: python3-setuptools
 BuildRequires: python3-dbus-fast
 BuildRequires: python3-tabulate
-BuildRequires: python3-proton-vpn-api-core >= 5.2.5
+BuildRequires: python3-proton-vpn-api-core >= 5.5.5
 BuildRequires: python3-proton-keyring-linux >= 0.2.2
 BuildRequires: python3-click
 
-Requires: python3-proton-vpn-api-core >= 5.2.5
+Requires: python3-proton-vpn-api-core >= 5.5.5
 Requires: python3-proton-keyring-linux >= 0.2.2
 Requires: python3-packaging
 Requires: python3-dbus-fast
