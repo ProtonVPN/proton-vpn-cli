@@ -1,0 +1,118 @@
+# Bash completion for protonvpn
+# Source this file or place it in /etc/bash_completion.d/
+# Requires: bash-completion (https://github.com/scop/bash-completion)
+
+_protonvpn() {
+    local cur prev words cword
+    _init_completion || return
+
+    local commands="signin signout info connect disconnect status servers countries cities config"
+    local config_subcommands="list set"
+    local config_set_settings="netshield kill-switch port-forwarding custom-dns vpn-accelerator moderate-nat ipv6 anonymous-crash-reports"
+    local toggle_values="on off"
+
+    # Walk the command line to determine the subcommand context
+    local cmd="" subcmd="" setting=""
+    local i
+    for ((i = 1; i < cword; i++)); do
+        case "${words[i]}" in
+            -v|--verbose|-h|--help)
+                continue
+                ;;
+            signin|signout|info|connect|disconnect|status|servers|countries|cities|config)
+                cmd="${words[i]}"
+                ;;
+            list|set)
+                if [[ "$cmd" == "config" || "$cmd" == "countries" || "$cmd" == "cities" ]]; then
+                    subcmd="${words[i]}"
+                fi
+                ;;
+            netshield|kill-switch|port-forwarding|custom-dns|vpn-accelerator|moderate-nat|ipv6|anonymous-crash-reports)
+                if [[ "$cmd" == "config" && "$subcmd" == "set" ]]; then
+                    setting="${words[i]}"
+                fi
+                ;;
+        esac
+    done
+
+    # Complete based on context
+    case "$cmd" in
+        "")
+            # Top-level: complete commands and global options
+            if [[ "$cur" == -* ]]; then
+                COMPREPLY=($(compgen -W "-v --verbose -h --help" -- "$cur"))
+            else
+                COMPREPLY=($(compgen -W "$commands" -- "$cur"))
+            fi
+            ;;
+        signin)
+            # signin takes a USERNAME argument, no completions
+            return
+            ;;
+        signout|info|disconnect|status|servers)
+            # These commands take no arguments
+            if [[ "$cur" == -* ]]; then
+                COMPREPLY=($(compgen -W "-h --help" -- "$cur"))
+            fi
+            ;;
+        connect)
+            if [[ "$prev" == "--country" || "$prev" == "--city" ]]; then
+                # These take a value argument; no static completions
+                return
+            fi
+            COMPREPLY=($(compgen -W "--country --city --p2p -sc --securecore --tor --random -h --help" -- "$cur"))
+            ;;
+        countries)
+            if [[ -z "$subcmd" ]]; then
+                COMPREPLY=($(compgen -W "list" -- "$cur"))
+            fi
+            ;;
+        cities)
+            if [[ -z "$subcmd" ]]; then
+                COMPREPLY=($(compgen -W "list" -- "$cur"))
+            fi
+            # cities list takes a COUNTRY argument; no static completions
+            ;;
+        config)
+            case "$subcmd" in
+                "")
+                    COMPREPLY=($(compgen -W "$config_subcommands" -- "$cur"))
+                    ;;
+                list)
+                    if [[ "$cur" == -* ]]; then
+                        COMPREPLY=($(compgen -W "-h --help" -- "$cur"))
+                    fi
+                    ;;
+                set)
+                    if [[ -z "$setting" ]]; then
+                        COMPREPLY=($(compgen -W "$config_set_settings" -- "$cur"))
+                    else
+                        # Complete setting values
+                        case "$setting" in
+                            netshield)
+                                COMPREPLY=($(compgen -W "off malware-only malware-ads-trackers" -- "$cur"))
+                                ;;
+                            kill-switch)
+                                COMPREPLY=($(compgen -W "off standard" -- "$cur"))
+                                ;;
+                            custom-dns)
+                                if [[ "$cur" == -* ]]; then
+                                    COMPREPLY=($(compgen -W "--dns -h --help" -- "$cur"))
+                                elif [[ "$prev" == "--dns" ]]; then
+                                    return
+                                else
+                                    COMPREPLY=($(compgen -W "$toggle_values" -- "$cur"))
+                                fi
+                                ;;
+                            vpn-accelerator|moderate-nat|ipv6|anonymous-crash-reports|port-forwarding)
+                                COMPREPLY=($(compgen -W "$toggle_values" -- "$cur"))
+                                ;;
+                        esac
+                    fi
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+complete -F _protonvpn protonvpn
