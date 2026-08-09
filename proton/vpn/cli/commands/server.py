@@ -18,11 +18,13 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with ProtonVPN.  If not, see <https://www.gnu.org/licenses/>.
 """
+import asyncio
 from asyncio import CancelledError
 from typing import Optional
 
 import click
 
+from proton.vpn import logging as ProtonLogging
 from proton.vpn.cli._cli_constants import PROGRAM_NAME
 from proton.vpn.cli.core.exceptions import \
     AuthenticationRequiredError, \
@@ -38,6 +40,8 @@ from proton.vpn.session.servers.types import LogicalServer, ServerFeatureEnum
 from proton.vpn.cli.commands.account import SIGNIN_COMMAND
 from proton.vpn.cli.commands.command_utils import \
     inform_that_expired_serverlist_will_be_updated_if_necessary
+
+logger = ProtonLogging.getLogger(__name__)
 
 CONNECT_COMMAND = "connect"
 DISCONNECT_COMMAND = "disconnect"
@@ -266,6 +270,21 @@ async def status(ctx):
         ])
 
     click.echo("\n".join(status_lines))
+
+    # Prevent SIGABRT crash during Python interpreter shutdown.
+    # The Rust local_agent.abi3.so spawns tokio background threads that
+    # hold Python callbacks (on_status, on_error, getLogger). When the
+    # CLI exits and Py_FinalizeEx runs, these threads may try to acquire
+    # the GIL to call Python callbacks, triggering a SIGABRT. Stopping
+    # the agent listener here ensures tokio tasks are dropped before
+    # the asyncio loop closes.
+    if connection is not None and hasattr(connection, '_agent_listener'):
+        try:
+            agent_listener = connection._agent_listener
+            if agent_listener.is_running:
+                await asyncio.wait_for(agent_listener.stop(), timeout=5.0)
+        except Exception:  # pylint: disable=broad-except
+            logger.debug("Failed to stop local agent listener.", exc_info=True)
 
 
 @click.command(
