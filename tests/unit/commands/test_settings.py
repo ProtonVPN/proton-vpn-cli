@@ -29,7 +29,9 @@ from proton.vpn.cli.commands.feature_setting_definitions import \
     PORT_FORWARDING_FEATURE, \
     CUSTOM_DNS_FEATURE, \
     KILLSWITCH_FEATURE, \
+    PROTOCOL_FEATURE, \
     NetshieldType, \
+    ProtocolType, \
     CustomDNSType, \
     ClickFeature
 from proton.vpn.cli.commands.server import DISCONNECT_COMMAND
@@ -257,6 +259,62 @@ def test_modifying_killswitch_only_succeeds_when_disconnected(
     assert ("Disconnect before changing Kill Switch. "
             f"Run '{test_context.info_name} {DISCONNECT_COMMAND}' first."
             in result.output) == is_connected
+
+
+@pytest.mark.parametrize(
+    "is_connected, protocol",
+    [
+        (True, "wireguard"),
+        (True, "openvpn-tcp"),
+        (False, "wireguard"),
+        (False, "openvpn-tcp"),
+    ]
+)
+def test_modifying_protocol_only_succeeds_when_disconnected(
+    runner: CliRunner,
+    test_context: click.Context,
+    controller_mock: AsyncMock,
+    is_connected: bool,
+    protocol: str
+):
+    controller_mock.is_connection_active.return_value = is_connected
+
+    result = runner.invoke(
+        app_cmd,
+        [CONFIG_COMMAND,
+         SET_COMMAND,
+         PROTOCOL_FEATURE.command,
+         protocol],
+        parent=test_context
+    )
+
+    assert result.exit_code == (2 if is_connected else 0)
+    assert ("Disconnect before changing the protocol. "
+            f"Run '{test_context.info_name} {DISCONNECT_COMMAND}' first."
+            in result.output) == is_connected
+
+    if not is_connected:
+        controller_mock.save_feature_setting.assert_called_with(
+            PROTOCOL_FEATURE, protocol
+        )
+        assert ProtocolType.get_human_friendly_state_string(protocol) in result.output
+
+
+def test_setting_protocol_rejects_unknown_value(
+    runner: CliRunner,
+    test_context: click.Context,
+    controller_mock: AsyncMock
+):
+    controller_mock.is_connection_active.return_value = False
+
+    result = runner.invoke(
+        app_cmd,
+        [CONFIG_COMMAND, SET_COMMAND, PROTOCOL_FEATURE.command, "carrier-pigeon"],
+        parent=test_context
+    )
+
+    assert result.exit_code == 2
+    controller_mock.save_feature_setting.assert_not_called()
 
 
 def test_listing_all_settings_fails_when_not_signed_in(
