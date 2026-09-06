@@ -439,7 +439,7 @@ KILLSWITCH_FEATURE = ClickFeature(
     help_description="Configure Kill Switch to block internet if VPN connection drops.",
     value_to_help={
         "off": "     Disable Kill Switch (internet always accessible)",
-        "standard": "Block internet only while VPN is active"
+        "standard": "Block internet only if VPN connection drops unexpectedly"
     },
     help_epilog="""\b
 Values:
