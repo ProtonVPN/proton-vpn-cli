@@ -1,0 +1,208 @@
+#compdef protonvpn
+# Zsh completion for protonvpn
+# Place this file in a directory listed in $fpath (e.g. /usr/share/zsh/site-functions/)
+
+_protonvpn_toggle_values() {
+    local -a values
+    values=(
+        'on:Enable'
+        'off:Disable'
+    )
+    _describe -t values 'value' values
+}
+
+_protonvpn_config_set_custom_dns() {
+    _arguments \
+        '1:state:(on off)' \
+        '--dns[Comma-separated DNS server IPs]:dns IPs: '
+}
+
+_protonvpn_config_set() {
+    local state line
+    typeset -A opt_args
+
+    _arguments -C \
+        '1:setting:->setting' \
+        '*::arg:->args'
+
+    case $state in
+        setting)
+            local -a settings
+            settings=(
+                'netshield:Ad-blocking and malware protection'
+                'kill-switch:Block internet if VPN drops'
+                'port-forwarding:Port forwarding for P2P'
+                'custom-dns:Custom DNS servers'
+                'vpn-accelerator:Performance optimization'
+                'moderate-nat:NAT type for gaming/P2P'
+                'ipv6:IPv6 support'
+                'anonymous-crash-reports:Anonymous crash reporting'
+            )
+            _describe -t settings 'setting' settings
+            ;;
+        args)
+            case $line[1] in
+                netshield)
+                    local -a values
+                    values=(
+                        'off:Disable NetShield'
+                        'malware-only:Block malware domains'
+                        'malware-ads-trackers:Block malware, ads, and trackers'
+                    )
+                    _describe -t values 'mode' values
+                    ;;
+                kill-switch)
+                    local -a values
+                    values=(
+                        'off:Disable Kill Switch'
+                        'standard:Block internet if VPN drops'
+                    )
+                    _describe -t values 'mode' values
+                    ;;
+                custom-dns)
+                    _protonvpn_config_set_custom_dns
+                    ;;
+                vpn-accelerator|moderate-nat|ipv6|anonymous-crash-reports|port-forwarding)
+                    _protonvpn_toggle_values
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_protonvpn_config() {
+    local state line
+    typeset -A opt_args
+
+    _arguments -C \
+        '1:subcommand:->subcmd' \
+        '*::arg:->args'
+
+    case $state in
+        subcmd)
+            local -a subcommands
+            subcommands=(
+                'list:Show current configuration'
+                'set:Change a setting'
+            )
+            _describe -t subcommands 'config subcommand' subcommands
+            ;;
+        args)
+            case $line[1] in
+                set)
+                    _protonvpn_config_set
+                    ;;
+                list)
+                    _message 'no more arguments'
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_protonvpn_connect() {
+    _arguments \
+        '1::server name: ' \
+        '--country[Connect to country (code or name)]:country: ' \
+        '--city[Connect to city]:city: ' \
+        '--p2p[P2P-optimized server]' \
+        '(-sc --securecore)'{-sc,--securecore}'[Secure Core server]' \
+        '--tor[Tor over VPN server]' \
+        '--random[Random server]' \
+        '(-h --help)'{-h,--help}'[Show help]'
+}
+
+_protonvpn_countries() {
+    local state line
+    typeset -A opt_args
+
+    _arguments -C \
+        '1:subcommand:->subcmd'
+
+    case $state in
+        subcmd)
+            local -a subcommands
+            subcommands=('list:List all countries')
+            _describe -t subcommands 'countries subcommand' subcommands
+            ;;
+    esac
+}
+
+_protonvpn_cities() {
+    local state line
+    typeset -A opt_args
+
+    _arguments -C \
+        '1:subcommand:->subcmd' \
+        '*::arg:->args'
+
+    case $state in
+        subcmd)
+            local -a subcommands
+            subcommands=('list:List cities in a country')
+            _describe -t subcommands 'cities subcommand' subcommands
+            ;;
+        args)
+            case $line[1] in
+                list)
+                    _message 'country code or name'
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_protonvpn() {
+    local state line
+    typeset -A opt_args
+
+    local -a commands
+    commands=(
+        'signin:Sign in to Proton VPN'
+        'signout:Sign out from Proton VPN'
+        'info:Display account information'
+        'connect:Connect to VPN server'
+        'disconnect:Disconnect from VPN'
+        'status:Show connection status'
+        'servers:View available servers'
+        'countries:Discover countries with servers'
+        'cities:Discover cities with servers'
+        'config:Configure VPN settings'
+    )
+
+    _arguments -C \
+        '(-v --verbose)'{-v,--verbose}'[Show detailed output]' \
+        '(-h --help)'{-h,--help}'[Show help]' \
+        '1:command:->command' \
+        '*::arg:->args'
+
+    case $state in
+        command)
+            _describe -t commands 'protonvpn command' commands
+            ;;
+        args)
+            case $line[1] in
+                signin)
+                    _message 'username'
+                    ;;
+                signout|info|disconnect|status|servers)
+                    _message 'no more arguments'
+                    ;;
+                connect)
+                    _protonvpn_connect
+                    ;;
+                countries)
+                    _protonvpn_countries
+                    ;;
+                cities)
+                    _protonvpn_cities
+                    ;;
+                config)
+                    _protonvpn_config
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+_protonvpn "$@"
