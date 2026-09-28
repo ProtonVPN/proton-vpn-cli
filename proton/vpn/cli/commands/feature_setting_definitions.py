@@ -197,6 +197,41 @@ class NetshieldType(ClickArgType):
         return "malware-ads-trackers"
 
 
+WIREGUARD = "wireguard"
+OPENVPN_UDP = "openvpn-udp"
+OPENVPN_TCP = "openvpn-tcp"
+
+_PROTOCOL_TO_HUMAN_FRIENDLY_NAME = {
+    WIREGUARD: "WireGuard",
+    OPENVPN_UDP: "OpenVPN (UDP)",
+    OPENVPN_TCP: "OpenVPN (TCP)",
+}
+
+
+class ProtocolType(ClickArgType):
+    """Represents the VPN protocols that a user can select."""
+
+    @staticmethod
+    def get_human_friendly_state_string(value: str) -> str:
+        """Returns human friendly state string for the specified value."""
+        return _PROTOCOL_TO_HUMAN_FRIENDLY_NAME[value]
+
+    @staticmethod
+    def to_list_of_str() -> list[str]:
+        """Converts to a list of all possible click value strings"""
+        return list(_PROTOCOL_TO_HUMAN_FRIENDLY_NAME)
+
+    @staticmethod
+    def from_str(value: str) -> str:
+        """Returns value based on provided click string"""
+        return value.lower()
+
+    @staticmethod
+    def to_str(value: str) -> str:
+        """Returns click string based on provided value"""
+        return value
+
+
 @dataclass
 class ClickFeature(Feature):
     """Click specific feature data."""
@@ -458,6 +493,44 @@ Behavior:
     click_type=KillSwitchType()
 )
 
+PROTOCOL_FEATURE = ClickFeature(
+    command="protocol",
+    human_friendly_name="Protocol",
+    setting_path="protocol",
+    available_on_free_tier=True,
+    available_setting_description="Protocol used to establish the tunnel",
+    help_description="Select the protocol used to establish the VPN tunnel.",
+    value_to_help={
+        WIREGUARD: "   WireGuard over UDP (default, recommended)",
+        OPENVPN_UDP: " OpenVPN over UDP",
+        OPENVPN_TCP: " OpenVPN over TCP (works where UDP is blocked)",
+    },
+    help_epilog="""\b
+Values:
+{feature_values}
+\b
+Examples:
+  {program_name} {config_command} {set_command} {feature_command} wireguard
+  {program_name} {config_command} {set_command} {feature_command} openvpn-tcp
+\b
+Current Setting:
+  Run '{program_name} {config_command} {settings_list_command}' to see current value.
+\b
+How It Works:
+  WireGuard over UDP is the fastest option and is used by default.
+\b
+  Some networks (public hotspots, hotels, corporate WiFi) drop the UDP
+  traffic that WireGuard and OpenVPN/UDP rely on. The tunnel is created
+  but the handshake never gets a reply, so the connection times out. On
+  such a network, openvpn-tcp establishes the tunnel over TCP instead
+  and connects normally.
+\b
+Recommendation:
+  Keep wireguard unless you are on a network that blocks UDP.""",
+    click_type=ProtocolType()
+)
+
+
 BOOL_FEATURES = [
     VPN_ACCELERATOR_FEATURE,
     MODERATE_NAT_FEATURE,
@@ -467,6 +540,7 @@ BOOL_FEATURES = [
 ]
 
 ALL_FEATURES = [
+    PROTOCOL_FEATURE,
     NETSHIELD_FEATURE,
     KILLSWITCH_FEATURE,
     PORT_FORWARDING_FEATURE,

@@ -36,6 +36,9 @@ from proton.vpn.cli.core.wait_for_current_tasks import wait_for_current_tasks
 from proton.vpn.session.exceptions import ServerNotFoundError
 from proton.vpn.session.servers.types import LogicalServer, ServerFeatureEnum
 from proton.vpn.cli.commands.account import SIGNIN_COMMAND
+from proton.vpn.cli.commands.feature_setting_definitions import \
+    OPENVPN_TCP, \
+    OPENVPN_UDP
 from proton.vpn.cli.commands.command_utils import \
     inform_that_expired_serverlist_will_be_updated_if_necessary
 
@@ -310,10 +313,6 @@ async def _display_relevant_server_capabilities(
                 "Connect to a P2P server to use port forwarding:"
                 f"{controller.program_name} {CONNECT_COMMAND} --p2p"
             )
-
-
-OPENVPN_UDP = "openvpn-udp"
-OPENVPN_TCP = "openvpn-tcp"
 
 
 def _display_openvpn_warning_if_necessary(protocol: str):
