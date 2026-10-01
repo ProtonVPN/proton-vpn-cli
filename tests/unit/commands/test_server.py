@@ -517,6 +517,74 @@ def test_status_shows_connected_with_server_details(
     assert "Protocol: wireguard" in result.output
 
 
+def _build_connected_mocks(controller_mock: AsyncMock) -> Mock:
+    connection_mock = Mock()
+    connection_mock.server_name = "CH#1"
+    connection_mock.protocol = "wireguard"
+    vpn_connector_mock = Mock()
+    vpn_connector_mock.current_state.context.connection = connection_mock
+    controller_mock.get_vpn_connector.return_value = vpn_connector_mock
+
+    server_mock = Mock()
+    server_mock.load = 42
+    server_mock.entry_country_name = "Switzerland"
+    server_mock.city = "Zurich"
+    server_mock.features = []
+    server_list_mock = Mock()
+    server_list_mock.get_by_name.return_value = server_mock
+    controller_mock.get_updated_server_list.return_value = server_list_mock
+
+    return connection_mock
+
+
+def test_status_stops_local_agent_listener_when_running(
+    controller_mock: AsyncMock,
+    cli_invoke
+):
+    connection_mock = _build_connected_mocks(controller_mock)
+    agent_listener_mock = Mock()
+    type(agent_listener_mock).is_running = PropertyMock(return_value=True)
+    agent_listener_mock.stop = AsyncMock()
+    connection_mock._agent_listener = agent_listener_mock
+
+    result = cli_invoke([STATUS_COMMAND])
+
+    assert result.exit_code == 0
+    agent_listener_mock.stop.assert_awaited_once()
+
+
+def test_status_does_not_stop_local_agent_listener_when_not_running(
+    controller_mock: AsyncMock,
+    cli_invoke
+):
+    connection_mock = _build_connected_mocks(controller_mock)
+    agent_listener_mock = Mock()
+    type(agent_listener_mock).is_running = PropertyMock(return_value=False)
+    agent_listener_mock.stop = AsyncMock()
+    connection_mock._agent_listener = agent_listener_mock
+
+    result = cli_invoke([STATUS_COMMAND])
+
+    assert result.exit_code == 0
+    agent_listener_mock.stop.assert_not_awaited()
+
+
+def test_status_succeeds_even_if_stopping_local_agent_listener_fails(
+    controller_mock: AsyncMock,
+    cli_invoke
+):
+    connection_mock = _build_connected_mocks(controller_mock)
+    agent_listener_mock = Mock()
+    type(agent_listener_mock).is_running = PropertyMock(return_value=True)
+    agent_listener_mock.stop = AsyncMock(side_effect=RuntimeError("boom"))
+    connection_mock._agent_listener = agent_listener_mock
+
+    result = cli_invoke([STATUS_COMMAND])
+
+    assert result.exit_code == 0
+    assert "Status: Connected" in result.output
+
+
 @pytest.mark.parametrize("server_list_expired", [True, False])
 def test_status_notifies_of_serverlist_update_when_expired(
     controller_mock: AsyncMock,
