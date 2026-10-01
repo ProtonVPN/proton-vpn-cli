@@ -60,22 +60,27 @@ _CLICK_CONTEXT_SETTINGS = {"help_option_names": [HELP_OPTION, HELP_OPTION_ABBREV
 
 
 async def _vpn_gui_running() -> bool:
-    bus = await MessageBus(bus_type=BusType.SESSION).connect()
+    try:
+        bus = await MessageBus(bus_type=BusType.SESSION).connect()
 
-    reply = await bus.call(
-        Message(
-            destination="org.freedesktop.DBus",
-            path="/org/freedesktop/DBus",
-            interface="org.freedesktop.DBus",
-            member="ListNames",
+        reply = await bus.call(
+            Message(
+                destination="org.freedesktop.DBus",
+                path="/org/freedesktop/DBus",
+                interface="org.freedesktop.DBus",
+                member="ListNames",
+            )
         )
-    )
 
-    if reply.message_type == MessageType.ERROR:
+        if reply.message_type == MessageType.ERROR:
+            return False
+
+        session_bus_names = reply.body[0]
+        return GTK_APP_ID in session_bus_names
+    except Exception:
+        # No DBus session available (e.g. headless server).
+        # If DBus is not running, the GUI can't be running either.
         return False
-
-    session_bus_names = reply.body[0]
-    return GTK_APP_ID in session_bus_names
 
 
 def _is_help_requested() -> bool:
