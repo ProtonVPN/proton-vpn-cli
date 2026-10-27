@@ -27,11 +27,15 @@ async def wait_for_current_tasks(timeout=10):
     Pauses the current task until all other tasks are processed. This is
     usefull for when we want to shutdown cleanly, or when waiting for some
     processing to complete.
+
+    Other tasks that fail or get cancelled, e.g. at shutdown, don't fail the
+    task waiting for them.
     """
     try:
         future = asyncio.gather(
             *[t for t in asyncio.all_tasks()
-              if t is not asyncio.current_task()]
+              if t is not asyncio.current_task()],
+            return_exceptions=True
         )
         await asyncio.wait_for(future, timeout)
     except asyncio.exceptions.TimeoutError:
