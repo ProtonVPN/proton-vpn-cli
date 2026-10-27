@@ -167,12 +167,15 @@ class NetshieldType(ClickArgType):
         if value == NetShield.BLOCK_MALICIOUS_URL:
             return "malware only"
 
+        if value == NetShield.BLOCK_ADS_TRACKING_AND_ADULT_CONTENT:
+            return "malware, ads, trackers and adult content"
+
         return "malware, ads and trackers"
 
     @staticmethod
     def to_list_of_str() -> list[str]:
         """Converts to a list of all possible click value strings"""
-        return ["off", "malware-only", "malware-ads-trackers"]
+        return ["off", "malware-only", "malware-ads-trackers", "malware-ads-trackers-adult"]
 
     @staticmethod
     def from_str(value: str) -> NetShield:
@@ -182,6 +185,9 @@ class NetshieldType(ClickArgType):
 
         if value == "malware-only":
             return NetShield.BLOCK_MALICIOUS_URL
+
+        if value == "malware-ads-trackers-adult":
+            return NetShield.BLOCK_ADS_TRACKING_AND_ADULT_CONTENT
 
         return NetShield.BLOCK_ADS_AND_TRACKING
 
@@ -193,6 +199,9 @@ class NetshieldType(ClickArgType):
 
         if value == NetShield.BLOCK_MALICIOUS_URL:
             return "malware-only"
+
+        if value == NetShield.BLOCK_ADS_TRACKING_AND_ADULT_CONTENT:
+            return "malware-ads-trackers-adult"
 
         return "malware-ads-trackers"
 
@@ -407,9 +416,10 @@ NETSHIELD_FEATURE = ClickFeature(
     available_setting_description="Ad-blocking and malware protection",
     help_description="Configure NetShield ad-blocking and malware protection.",
     value_to_help={
-        "off": "                 NetShield disabled",
-        "malware-only": "        Block malware domains",
-        "malware-ads-trackers": "Block malware, ads, and trackers (recommended)"
+        "off": "                       NetShield disabled",
+        "malware-only": "              Block malware domains",
+        "malware-ads-trackers": "      Block malware, ads, and trackers (recommended)",
+        "malware-ads-trackers-adult": "Block malware, ads, trackers, and adult content"
     },
     help_epilog="""\b
 Values:
@@ -419,6 +429,7 @@ Examples:
   {program_name} {config_command} {set_command} {feature_command} off
   {program_name} {config_command} {set_command} {feature_command} malware-only
   {program_name} {config_command} {set_command} {feature_command} malware-ads-trackers
+  {program_name} {config_command} {set_command} {feature_command} malware-ads-trackers-adult
 \b
 Current Setting:
   Run '{program_name} {config_command} {settings_list_command}' to see current value.
