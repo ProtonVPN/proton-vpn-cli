@@ -42,6 +42,7 @@ from proton.vpn.cli.core.exceptions import \
     RequiresHigherTierError, \
     InvalidDNS
 from proton.vpn.core.settings.custom_dns import CustomDNS
+from proton.vpn.core.settings.features import NetShield
 from proton.vpn.killswitch.interface import KillSwitchState
 
 
@@ -388,3 +389,37 @@ def test_listing_all_settings_shows_correct_guidance_for_user_tier(
             in result.output
 
     assert result.exit_code == 0
+
+
+@pytest.mark.parametrize("netshield_str, netshield, human_friendly_str", [
+    ("off", NetShield.NO_BLOCK, "disabled"),
+    ("malware-only", NetShield.BLOCK_MALICIOUS_URL, "malware only"),
+    ("malware-ads-trackers", NetShield.BLOCK_ADS_AND_TRACKING, "malware, ads and trackers"),
+    ("malware-ads-trackers-adult", NetShield.BLOCK_ADS_TRACKING_AND_ADULT_CONTENT,
+     "malware, ads, trackers and adult content"),
+])
+def test_netshield_values_convert_both_ways(netshield_str, netshield, human_friendly_str):
+    assert netshield_str in NetshieldType.to_list_of_str()
+    assert NetshieldType.from_str(netshield_str) == netshield
+    assert NetshieldType.to_str(netshield) == netshield_str
+    assert NetshieldType.get_human_friendly_state_string(netshield) == human_friendly_str
+
+
+def test_setting_netshield_to_block_adult_content_saves_it(
+    runner: CliRunner,
+    test_context: click.Context,
+    controller_mock: AsyncMock
+):
+    controller_mock.is_connection_active.return_value = False
+
+    result = runner.invoke(
+        app_cmd,
+        [CONFIG_COMMAND, SET_COMMAND, "netshield", "malware-ads-trackers-adult"],
+        parent=test_context
+    )
+
+    assert result.exit_code == 0
+    controller_mock.save_feature_setting.assert_called_once()
+    assert controller_mock.save_feature_setting.call_args.args[1] == \
+        NetShield.BLOCK_ADS_TRACKING_AND_ADULT_CONTENT
+    assert "NetShield has been set to 'malware, ads, trackers and adult content'" in result.output
