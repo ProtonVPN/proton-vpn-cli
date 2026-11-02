@@ -36,11 +36,13 @@ from proton.vpn.cli.commands.feature_setting_definitions import \
     ToggleType, \
     KillSwitchType, \
     NetshieldType, \
+    ProtocolType, \
     CUSTOM_DNS_FEATURE, \
     IPV6_FEATURE, \
     KILLSWITCH_FEATURE, \
     NETSHIELD_FEATURE, \
-    PORT_FORWARDING_FEATURE
+    PORT_FORWARDING_FEATURE, \
+    PROTOCOL_FEATURE
 from proton.vpn.cli.commands.server import DISCONNECT_COMMAND
 
 
@@ -203,6 +205,39 @@ async def killswitch_command(ctx: click.Context, mode: str) -> None:
         _print_success_message(
             KILLSWITCH_FEATURE,
             KillSwitchType.get_human_friendly_state_string(killswitch_value)
+        )
+
+
+@set_group.command(
+    name=PROTOCOL_FEATURE.command,
+    help=PROTOCOL_FEATURE.help_description,
+    epilog=_format_setting_epilog(PROTOCOL_FEATURE)
+)
+@click.argument(
+    "protocol",
+    type=click.Choice(ProtocolType.to_list_of_str(), case_sensitive=False),
+)
+@click.pass_context
+@run_async
+async def protocol_command(ctx: click.Context, protocol: str) -> None:
+    """Select the protocol used to establish the VPN tunnel."""
+    controller = await Controller.create(params=ctx.obj, click_ctx=ctx)
+    if await controller.is_connection_active():
+        raise click.UsageError(
+            "Disconnect before changing the protocol. "
+            f"Run '{controller.program_name} {DISCONNECT_COMMAND}' first."
+        )
+
+    protocol_value = ProtocolType.from_str(protocol)
+
+    try:
+        await controller.save_feature_setting(PROTOCOL_FEATURE, protocol_value)
+    except AuthenticationRequiredError:
+        _raise_error_auth_required(controller, action="set")
+    else:
+        _print_success_message(
+            PROTOCOL_FEATURE,
+            ProtocolType.get_human_friendly_state_string(protocol_value)
         )
 
 
